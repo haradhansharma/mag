@@ -31,3 +31,4 @@ pnpm-debug.log*
 # Build artifacts
 public/downloads/
 *:Zone.Identifier
+.wrangler/
