@@ -67,6 +67,29 @@ async function checkApi(): Promise<boolean> {
 }
 
 // ========================
+// Media URL Resolver
+// ========================
+// Django ImageField .url returns paths like /media/articles/x.png
+// These must be loaded from the Django backend, not the Astro dev server.
+// This function prepends the API base URL (e.g. http://localhost:8085)
+// so images are served from Django's media handler.
+// Future CDN: just change MEDIA_URL in Django settings.
+
+const API_BASE = typeof process !== 'undefined'
+  ? (process.env.PUBLIC_API_URL || 'http://localhost:8085/api/v1').replace(/\/api\/v1\/?$/, '')
+  : 'http://localhost:8085';
+
+function resolveMediaUrl(path: string): string {
+  if (!path) return '';
+  // Already an absolute URL (http/https) — return as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // /media/ path from Django — prepend API base
+  if (path.startsWith('/media/')) return `${API_BASE}${path}`;
+  // Relative path from frontend dummy data (e.g. /images/x.png) — keep as-is for Astro
+  return path;
+}
+
+// ========================
 // Transformers: API → Frontend Types
 // ========================
 
@@ -78,7 +101,7 @@ function transformArticleBrief(b: ApiArticleBrief): Article {
     subtitle: '',
     content: '',
     excerpt: b.excerpt,
-    coverImage: b.cover_image,
+    coverImage: resolveMediaUrl(b.cover_image),
     coverCaption: '',
     authorId: '',
     author: {
@@ -126,7 +149,7 @@ function transformArticleOut(a: ApiArticleOut): Article {
     subtitle: a.subtitle,
     content: a.content,
     excerpt: a.excerpt,
-    coverImage: a.cover_image,
+    coverImage: resolveMediaUrl(a.cover_image),
     coverCaption: a.cover_caption,
     authorId: a.author.id,
     author: {
@@ -134,7 +157,7 @@ function transformArticleOut(a: ApiArticleOut): Article {
       name: a.author.name,
       slug: a.author.slug,
       bio: '',
-      avatar: a.author.avatar,
+      avatar: resolveMediaUrl(a.author.avatar),
       role: a.author.role,
       socials: {},
       articleCount: 0,
@@ -186,7 +209,7 @@ function transformAuthorOut(a: ApiAuthorOut): Author {
     name: a.name,
     slug: a.slug,
     bio: a.bio,
-    avatar: a.avatar,
+    avatar: resolveMediaUrl(a.avatar),
     role: a.role,
     socials: {
       ...(a.twitter ? { twitter: a.twitter } : {}),
@@ -205,7 +228,7 @@ function transformEditionBrief(e: ApiEditionBrief): Edition {
     title: e.title,
     subtitle: '',
     slug: e.slug,
-    coverImage: e.cover_image,
+    coverImage: resolveMediaUrl(e.cover_image),
     articleIds: [],
     articles: [],
     status: e.status as Edition['status'],
@@ -229,7 +252,7 @@ function transformEditionOut(e: ApiEditionOut): Edition {
     title: e.title,
     subtitle: e.subtitle,
     slug: e.slug,
-    coverImage: e.cover_image,
+    coverImage: resolveMediaUrl(e.cover_image),
     articleIds: articles.map(a => a.id),
     articles,
     status: e.status as Edition['status'],
@@ -240,7 +263,7 @@ function transformEditionOut(e: ApiEditionOut): Edition {
     featuredArticleId: featured?.id,
     featuredArticle: featured,
     printReady: e.print_ready,
-    printPdfUrl: e.print_pdf_url || undefined,
+    printPdfUrl: resolveMediaUrl(e.print_pdf_url) || undefined,
   };
 }
 

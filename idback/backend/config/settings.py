@@ -185,7 +185,7 @@ else:
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
+print(f"MEDIA_ROOT set to: {MEDIA_ROOT}")
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
