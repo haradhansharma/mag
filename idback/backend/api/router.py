@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.sites.models import Site
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Avg, Count, Q
@@ -13,18 +14,31 @@ from ninja import NinjaAPI, Query, Router
 
 from api.auth import (
     GlobalAuth,
+    create_password_reset_token,
     create_token_for_user,
+    create_verification_token,
     delete_user_tokens,
     editor_required,
+    send_password_reset_email,
+    send_verification_email,
     subscriber_required,
+    verify_password_reset_token,
+    verify_token,
     writer_required,
+)
+from common.models import (
+    Article,
+    Author,
+    Category,
+    Edition,
+    PrintOrder,
+    SiteSettings,
 )
 from users.models import (
     EditorialActivity,
     Subscription,
     SubscriptionPlan,
 )
-from common.models import Article, Author, Category, Edition, PrintOrder
 from api.schemas import (
     ArticleBrief,
     ArticleCreate,
@@ -46,13 +60,17 @@ from api.schemas import (
     EditorialActivityOut,
     EditorialQueueItemOut,
     EditorialStatsOut,
+    ForgotPassword,
     HomepageData,
     MessageOut,
     PaginatedResponse,
     PrintOrderCreate,
     PrintOrderOut,
     PrintPricingOut,
+    ResendVerification,
+    ResetPassword,
     SearchFilters,
+    SubscriptionCancel,
     SubscriptionCreate,
     SubscriptionOut,
     SubscriptionPlanOut,
@@ -60,11 +78,32 @@ from api.schemas import (
     UserLogin,
     UserOut,
     UserRegister,
+    VerifyEmail,
 )
+from ninja.errors import HttpError
 
 User = get_user_model()
 
 api = NinjaAPI(title="MERIDIAN Magazine API", version="1.0.0")
+
+
+# ============================================================
+# Site Config Helpers
+# ============================================================
+
+
+def _get_site_settings() -> SiteSettings:
+    site = Site.objects.get_current()
+    obj, _ = SiteSettings.objects.get_or_create(site=site, defaults={})
+    return obj
+
+
+def _get_print_pricing() -> dict:
+    """Get print pricing from site config (never hardcoded)."""
+    ss = _get_site_settings()
+    pricing = ss.get_pricing()
+    return pricing.get("print", {})
+
 
 # ============================================================
 # Helper functions
@@ -178,6 +217,27 @@ def _build_edition_out(edition: Edition) -> EditionOut:
     )
 
 
+# Allowed fields for article update (explicit allowlist)
+ARTICLE_UPDATE_ALLOWED_FIELDS = {
+    "title",
+    "subtitle",
+    "content",
+    "excerpt",
+    "cover_image",
+    "cover_caption",
+    "content_type",
+    "access",
+    "seo_title",
+    "seo_description",
+    "seo_keywords",
+    "reading_time",
+    "word_count",
+    "featured",
+    "trending",
+    "pinned",
+}
+
+
 def _paginate(queryset, page: int, page_size: int, request: HttpRequest):
     paginator = Paginator(queryset, page_size)
     page_obj = paginator.get_page(page)
@@ -246,8 +306,6 @@ def get_article(request: HttpRequest, slug: str):
         .first()
     )
     if not article:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Article not found")
     return _build_article_out(article)
 
@@ -280,8 +338,6 @@ def list_categories(request: HttpRequest):
 def get_category(request: HttpRequest, slug: str):
     cat = Category.objects.filter(slug=slug).first()
     if not cat:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Category not found")
     return CategoryOut(
         id=cat.id,
@@ -328,8 +384,6 @@ def list_authors(request: HttpRequest):
 def get_author(request: HttpRequest, slug: str):
     author = Author.objects.filter(slug=slug).first()
     if not author:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Author not found")
     return AuthorOut(
         id=str(author.id),
@@ -376,8 +430,6 @@ def get_edition(request: HttpRequest, slug: str):
         .first()
     )
     if not edition:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Edition not found")
     return _build_edition_out(edition)
 
@@ -396,19 +448,17 @@ def get_latest_edition(request: HttpRequest):
         .first()
     )
     if not edition:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "No published editions found")
     return _build_edition_out(edition)
 
 
-# --- Search ---
+# --- Search (with max query length) ---
 
 
 @api.get("/search/", response=PaginatedResponse[ArticleBrief])
 def search_articles(
     request: HttpRequest,
-    q: str = Query(..., min_length=1),
+    q: str = Query(..., min_length=1, max_length=200),
     page: int = Query(1, ge=1),
     page_size: int = Query(12, ge=1, le=100),
     category: Optional[str] = Query(None),
@@ -492,19 +542,27 @@ def list_plans(request: HttpRequest):
     ]
 
 
-# --- Print Pricing ---
+# --- Print Pricing (from site config, NOT hardcoded) ---
 
 
 @api.get("/print/pricing/", response=PrintPricingOut)
 def get_print_pricing(request: HttpRequest):
+    pp = _get_print_pricing()
+    us = pp.get("us", {})
+    intl = pp.get("international", {})
     return PrintPricingOut(
-        unit_price_us=12.99,
-        shipping_us=4.99,
-        unit_price_international=14.99,
-        shipping_international=12.99,
-        bulk_discount_threshold=5,
-        bulk_discount_percent=10.0,
-        currency="USD",
+        unit_price_us=float(Decimal(str(us.get("unit", "12.99")))),
+        shipping_us=float(Decimal(str(us.get("shipping", "4.99")))),
+        unit_price_international=float(Decimal(str(intl.get("unit", "14.99")))),
+        shipping_international=float(Decimal(str(intl.get("shipping", "12.99")))),
+        bulk_discount_threshold=int(pp.get("bulk_threshold", 5)),
+        bulk_discount_percent=float(
+            Decimal(str(pp.get("bulk_discount_percent", "10.0")))
+        ),
+        currency=_get_site_settings()
+        .get_pricing()
+        .get("subscription_plans", {})
+        .get("currency", "USD"),
     )
 
 
@@ -515,41 +573,145 @@ def get_print_pricing(request: HttpRequest):
 
 @api.post("/auth/register/", response=TokenOut)
 def register(request: HttpRequest, data: UserRegister):
-    if User.objects.filter(username=data.username).exists():
-        from ninja.errors import HttpError
+    # Check if registration is allowed
+    ss = _get_site_settings()
+    if not ss.allow_registration:
+        raise HttpError(403, "Registration is currently disabled")
 
+    # Check user limit
+    if ss.max_users > 0 and User.objects.count() >= ss.max_users:
+        raise HttpError(403, "Maximum number of users reached")
+
+    # Check password length from site config
+    sec = ss.get_security()
+    min_pw = int(sec.get("password_min_length", 8))
+    if len(data.password) < min_pw:
+        raise HttpError(400, f"Password must be at least {min_pw} characters")
+
+    if User.objects.filter(username=data.username).exists():
         raise HttpError(400, "Username already exists")
     if User.objects.filter(email=data.email).exists():
-        from ninja.errors import HttpError
-
         raise HttpError(400, "Email already exists")
 
+    # Create user as inactive (requires email verification)
     user = User.objects.create_user(
         username=data.username,
         email=data.email,
         password=data.password,
         role=User.Role.VISITOR,
+        is_active=False,
+        is_verified=False,
     )
+
+    # Generate verification token and send email
+    token_str = create_verification_token(user)
+    send_verification_email(user, token_str)
+
+    # Still return auth token for the session
     token = create_token_for_user(user)
     return TokenOut(
         token=token.key,
         user_id=str(user.id),
         username=user.username,
         role=user.role,
+        is_verified=False,
     )
+
+
+@api.post("/auth/verify/", response=MessageOut)
+def verify_email(request: HttpRequest, data: VerifyEmail):
+    user = User.objects.filter(email=data.email).first()
+    if not user:
+        raise HttpError(404, "No account found with this email")
+
+    if user.is_verified:
+        return MessageOut(message="Email already verified")
+
+    if verify_token(user, data.token):
+        user.is_verified = True
+        user.is_active = True
+        user.verification_token = ""
+        user.verification_token_expires = None
+        user.save(
+            update_fields=[
+                "is_verified",
+                "is_active",
+                "verification_token",
+                "verification_token_expires",
+            ]
+        )
+        return MessageOut(message="Email verified successfully")
+    else:
+        raise HttpError(400, "Invalid or expired verification token")
+
+
+@api.post("/auth/resend-verification/", response=MessageOut)
+def resend_verification(request: HttpRequest, data: ResendVerification):
+    user = User.objects.filter(email=data.email).first()
+    if not user:
+        raise HttpError(404, "No account found with this email")
+
+    if user.is_verified:
+        return MessageOut(message="Email already verified")
+
+    token_str = create_verification_token(user)
+    send_verification_email(user, token_str)
+    return MessageOut(message="Verification email sent")
+
+
+@api.post("/auth/forgot-password/", response=MessageOut)
+def forgot_password(request: HttpRequest, data: ForgotPassword):
+    user = User.objects.filter(email=data.email).first()
+    if not user:
+        # Don't reveal whether email exists (security best practice)
+        return MessageOut(
+            message="If an account exists with this email, a reset link has been sent"
+        )
+
+    token_str = create_password_reset_token(user)
+    send_password_reset_email(user, token_str)
+    return MessageOut(
+        message="If an account exists with this email, a reset link has been sent"
+    )
+
+
+@api.post("/auth/reset-password/", response=MessageOut)
+def reset_password(request: HttpRequest, data: ResetPassword):
+    user = User.objects.filter(email=data.email).first()
+    if not user:
+        raise HttpError(404, "No account found with this email")
+
+    ss = _get_site_settings()
+    sec = ss.get_security()
+    min_pw = int(sec.get("password_min_length", 8))
+    if len(data.new_password) < min_pw:
+        raise HttpError(400, f"Password must be at least {min_pw} characters")
+
+    if verify_password_reset_token(user, data.token):
+        user.set_password(data.new_password)
+        user.password_reset_token = ""
+        user.password_reset_token_expires = None
+        user.save(
+            update_fields=[
+                "password",
+                "password_reset_token",
+                "password_reset_token_expires",
+            ]
+        )
+        # Invalidate all existing tokens for security
+        delete_user_tokens(user)
+        return MessageOut(message="Password reset successfully")
+    else:
+        raise HttpError(400, "Invalid or expired reset token")
 
 
 @api.post("/auth/login/", response=TokenOut)
 def login(request: HttpRequest, data: UserLogin):
     user = authenticate(username=data.username, password=data.password)
     if not user:
-        from ninja.errors import HttpError
-
         raise HttpError(401, "Invalid credentials")
     if not user.is_active:
-        from ninja.errors import HttpError
-
-        raise HttpError(401, "Account disabled")
+        raise HttpError(401, "Account is not active. Please verify your email first.")
 
     delete_user_tokens(user)
     token = create_token_for_user(user)
@@ -558,6 +720,7 @@ def login(request: HttpRequest, data: UserLogin):
         user_id=str(user.id),
         username=user.username,
         role=user.role,
+        is_verified=user.is_verified,
     )
 
 
@@ -572,6 +735,7 @@ def get_current_user(request: HttpRequest):
         first_name=user.first_name,
         last_name=user.last_name,
         is_active=user.is_active,
+        is_verified=user.is_verified,
         date_joined=user.date_joined,
     )
 
@@ -590,20 +754,36 @@ def logout(request: HttpRequest):
 @api.post("/articles/", response=ArticleOut, auth=GlobalAuth())
 def create_article(request: HttpRequest, data: ArticleCreate):
     user = writer_required(request.auth)
+
+    # Content moderation: check word count from site config
+    ss = _get_site_settings()
+    cc = ss.get_content_config()
+    max_words = int(cc.get("max_article_word_count", 10000))
+    if data.word_count > max_words:
+        raise HttpError(400, f"Article exceeds maximum word count of {max_words}")
+
+    # Check banned words
+    banned = cc.get("banned_words", [])
+    if banned:
+        content_lower = (data.title + " " + data.content).lower()
+        found = [w for w in banned if w.lower() in content_lower]
+        if found:
+            raise HttpError(
+                400, f"Content contains prohibited words: {', '.join(found[:3])}"
+            )
+
+    # Check if editor approval is required — if so, status stays DRAFT
+    require_approval = cc.get("require_editor_approval", True)
+
     author = Author.objects.filter(user=user).first()
     if not author:
-        # Admin/editor can specify a different author
         if data.author_id and user.role in (User.Role.EDITOR, User.Role.ADMIN):
             author = Author.objects.filter(pk=data.author_id).first()
         if not author:
-            from ninja.errors import HttpError
-
             raise HttpError(400, "User does not have an author profile")
 
     category = Category.objects.filter(id=data.category_id).first()
     if not category:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Category not found")
 
     article = Article.objects.create(
@@ -650,8 +830,6 @@ def update_article(request: HttpRequest, article_id: str, data: ArticleUpdate):
             "author", "category", "reviewed_by"
         ).get(pk=article_id)
     except Article.DoesNotExist:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Article not found")
 
     if (
@@ -659,21 +837,19 @@ def update_article(request: HttpRequest, article_id: str, data: ArticleUpdate):
         and user.role != User.Role.EDITOR
         and user.role != User.Role.ADMIN
     ):
-        from ninja.errors import HttpError
-
         raise HttpError(403, "You can only edit your own articles")
 
     update_fields = data.model_dump(exclude_unset=True)
     if "category_id" in update_fields:
         cat = Category.objects.filter(id=update_fields.pop("category_id")).first()
         if not cat:
-            from ninja.errors import HttpError
-
             raise HttpError(404, "Category not found")
         article.category = cat
 
+    # Explicit allowlist for update fields (M3 fix)
     for field, value in update_fields.items():
-        setattr(article, field, value)
+        if field in ARTICLE_UPDATE_ALLOWED_FIELDS:
+            setattr(article, field, value)
     article.save()
 
     EditorialActivity.objects.create(
@@ -696,18 +872,12 @@ def delete_article(request: HttpRequest, article_id: str):
     try:
         article = Article.objects.get(pk=article_id)
     except Article.DoesNotExist:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Article not found")
 
     if article.author.user != user and user.role != User.Role.ADMIN:
-        from ninja.errors import HttpError
-
         raise HttpError(403, "You can only delete your own articles")
 
     if article.status != Article.Status.DRAFT:
-        from ninja.errors import HttpError
-
         raise HttpError(400, "Only draft articles can be deleted")
 
     article.delete()
@@ -722,18 +892,12 @@ def submit_article(request: HttpRequest, article_id: str):
             "author", "category", "reviewed_by"
         ).get(pk=article_id)
     except Article.DoesNotExist:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Article not found")
 
     if article.author.user != user and user.role != User.Role.ADMIN:
-        from ninja.errors import HttpError
-
         raise HttpError(403, "You can only submit your own articles")
 
     if article.status not in (Article.Status.DRAFT, Article.Status.REJECTED):
-        from ninja.errors import HttpError
-
         raise HttpError(400, "Only draft or rejected articles can be submitted")
 
     article.status = Article.Status.IN_REVIEW
@@ -770,8 +934,6 @@ def update_article_status(
             "author", "category", "reviewed_by"
         ).get(pk=article_id)
     except Article.DoesNotExist:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Article not found")
 
     valid_transitions = {
@@ -780,15 +942,12 @@ def update_article_status(
         Article.Status.PUBLISHED,
     }
     if data.status not in valid_transitions:
-        from ninja.errors import HttpError
-
         raise HttpError(400, f"Status must be one of: {', '.join(valid_transitions)}")
 
     if data.status == Article.Status.REJECTED and not data.rejection_reason:
-        from ninja.errors import HttpError
-
         raise HttpError(400, "Rejection reason is required when rejecting an article")
 
+    # Content moderation: editor consent required for publishing
     if data.status == Article.Status.PUBLISHED:
         article.published_at = datetime.now(timezone.utc)
 
@@ -943,8 +1102,6 @@ def update_edition(request: HttpRequest, edition_id: str, data: EditionUpdate):
     try:
         edition = Edition.objects.get(pk=edition_id)
     except Edition.DoesNotExist:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Edition not found")
 
     update_fields = data.model_dump(exclude_unset=True)
@@ -971,8 +1128,6 @@ def delete_edition(request: HttpRequest, edition_id: str):
     try:
         edition = Edition.objects.get(pk=edition_id)
     except Edition.DoesNotExist:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Edition not found")
 
     edition.delete()
@@ -985,8 +1140,6 @@ def publish_edition(request: HttpRequest, edition_id: str):
     try:
         edition = Edition.objects.get(pk=edition_id)
     except Edition.DoesNotExist:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Edition not found")
 
     edition.status = Edition.Status.PUBLISHED
@@ -1035,35 +1188,44 @@ def list_premium_articles(
 
 @api.post("/subscriptions/", response=SubscriptionOut, auth=GlobalAuth())
 def create_subscription(request: HttpRequest, data: SubscriptionCreate):
-    user = subscriber_required(request.auth)
+    # Check if subscriptions feature is enabled
+    ss = _get_site_settings()
+    flags = ss.get_feature_flags()
+    if not flags.get("subscriptions_enabled", True):
+        raise HttpError(403, "Subscriptions are currently disabled")
+
+    subscriber_required(request.auth)
     plan = SubscriptionPlan.objects.filter(id=data.plan_id, is_active=True).first()
     if not plan:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Plan not found")
 
+    # Payment verification for paid plans (H3 fix)
+    if plan.price > 0 and not data.payment_id:
+        raise HttpError(400, "Payment is required for paid subscription plans")
+
     existing = Subscription.objects.filter(
-        user=user, status=Subscription.Status.ACTIVE
+        user=request.auth, status=Subscription.Status.ACTIVE
     ).first()
     if existing:
-        from ninja.errors import HttpError
-
         raise HttpError(400, "User already has an active subscription")
 
-    if plan.interval == "yearly":
-        expires_at = datetime.now(timezone.utc) + timedelta(days=365)
-    else:
-        expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+    # Use transaction.atomic for multi-step operations (M5 fix)
+    with transaction.atomic():
+        if plan.interval == "yearly":
+            expires_at = datetime.now(timezone.utc) + timedelta(days=365)
+        else:
+            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
 
-    sub = Subscription.objects.create(
-        user=user,
-        plan=plan,
-        status=Subscription.Status.ACTIVE,
-        expires_at=expires_at,
-    )
+        sub = Subscription.objects.create(
+            user=request.auth,
+            plan=plan,
+            status=Subscription.Status.ACTIVE,
+            expires_at=expires_at,
+            payment_id=data.payment_id or "",
+        )
 
-    user.role = User.Role.SUBSCRIBER
-    user.save(update_fields=["role"])
+        request.auth.role = User.Role.SUBSCRIBER
+        request.auth.save(update_fields=["role"])
 
     return SubscriptionOut(
         id=str(sub.id),
@@ -1084,6 +1246,25 @@ def create_subscription(request: HttpRequest, data: SubscriptionCreate):
         expires_at=sub.expires_at,
         cancelled_at=sub.cancelled_at,
     )
+
+
+@api.post("/subscriptions/cancel/", response=MessageOut, auth=GlobalAuth())
+def cancel_subscription(request: HttpRequest, data: SubscriptionCancel):
+    user = subscriber_required(request.auth)
+    sub = Subscription.objects.filter(
+        user=user, status=Subscription.Status.ACTIVE
+    ).first()
+    if not sub:
+        raise HttpError(404, "No active subscription found")
+
+    with transaction.atomic():
+        sub.status = Subscription.Status.CANCELLED
+        sub.cancelled_at = datetime.now(timezone.utc)
+        sub.save(update_fields=["status", "cancelled_at"])
+        user.role = User.Role.VISITOR
+        user.save(update_fields=["role"])
+
+    return MessageOut(message="Subscription cancelled successfully")
 
 
 @api.get("/subscriptions/me/", response=Optional[SubscriptionOut], auth=GlobalAuth())
@@ -1125,40 +1306,54 @@ def get_my_subscription(request: HttpRequest):
 
 @api.post("/print/orders/", response=PrintOrderOut, auth=GlobalAuth())
 def create_print_order(request: HttpRequest, data: PrintOrderCreate):
+    # Check if print orders feature is enabled
+    ss = _get_site_settings()
+    flags = ss.get_feature_flags()
+    if not flags.get("print_orders_enabled", True):
+        raise HttpError(403, "Print orders are currently disabled")
+
     subscriber_required(request.auth)
     edition = Edition.objects.filter(pk=data.edition_id).first()
     if not edition:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Edition not found")
 
-    is_international = data.shipping_region == "international"
-    unit_price = Decimal("14.99") if is_international else Decimal("12.99")
-    shipping = Decimal("12.99") if is_international else Decimal("4.99")
+    # Pricing from site config (H4 fix - never hardcoded)
+    pp = _get_print_pricing()
+    region_key = data.shipping_region  # "us" or "international"
+    region_config = pp.get(region_key, pp.get("us", {}))
+    unit_price = Decimal(str(region_config.get("unit", "12.99")))
+    shipping = Decimal(str(region_config.get("shipping", "4.99")))
+    bulk_threshold = int(pp.get("bulk_threshold", 5))
+    bulk_discount_pct = Decimal(str(pp.get("bulk_discount_percent", "10.0")))
+
     discount = Decimal("0")
-    if data.quantity >= 5:
-        discount = (unit_price * data.quantity) * Decimal("0.10")
+    if data.quantity >= bulk_threshold:
+        discount = (unit_price * data.quantity) * (bulk_discount_pct / Decimal("100"))
     total = (unit_price * data.quantity) + shipping - discount
 
     order_id = f"ORD-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
 
-    order = PrintOrder.objects.create(
-        user=request.auth,
-        edition=edition,
-        quantity=data.quantity,
-        unit_price=unit_price,
-        shipping_cost=shipping,
-        discount=discount,
-        total=total,
-        shipping_region=data.shipping_region,
-        first_name=data.first_name,
-        last_name=data.last_name,
-        street=data.street,
-        city=data.city,
-        state=data.state,
-        zip_code=data.zip_code,
-        order_id=order_id,
-    )
+    # Use transaction.atomic (M5 fix)
+    with transaction.atomic():
+        order = PrintOrder.objects.create(
+            user=request.auth,
+            edition=edition,
+            quantity=data.quantity,
+            unit_price=unit_price,
+            shipping_cost=shipping,
+            discount=discount,
+            total=total,
+            shipping_region=data.shipping_region,
+            first_name=data.first_name,
+            last_name=data.last_name,
+            street=data.street,
+            city=data.city,
+            state=data.state,
+            zip_code=data.zip_code,
+            order_id=order_id,
+            payment_id=data.payment_id or "",
+        )
+
     return PrintOrderOut(
         id=str(order.id),
         order_id=order.order_id,

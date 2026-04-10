@@ -28,12 +28,107 @@ class SiteSettings(models.Model):
     allow_registration = models.BooleanField(default=True)
     max_users = models.PositiveIntegerField(default=0, help_text="0 means unlimited")
 
+    # --- Configuration stored as JSON (all configurable from admin) ---
+    # Pricing configuration
+    pricing_config = models.JSONField(
+        default=dict,
+        help_text='{"subscription_plans": {"currency": "USD"}, "print": {"us": {"unit": "12.99", "shipping": "4.99"}, "international": {"unit": "14.99", "shipping": "12.99"}, "bulk_threshold": 5, "bulk_discount_percent": "10.0"}}',
+    )
+
+    # Rate limiting configuration
+    rate_limit_config = models.JSONField(
+        default=dict,
+        help_text='{"login": {"max_attempts": 5, "window_seconds": 60}, "register": {"max_attempts": 3, "window_seconds": 3600}, "api": {"max_requests": 100, "window_seconds": 60}, "otp": {"max_attempts": 5, "window_seconds": 300}}',
+    )
+
+    # Security configuration
+    security_config = models.JSONField(
+        default=dict,
+        help_text='{"admin_allowed_ips": [], "allowed_countries": [], "token_lifetime_days": 7, "password_min_length": 8}',
+    )
+
+    # Content moderation configuration
+    content_config = models.JSONField(
+        default=dict,
+        help_text='{"require_editor_approval": true, "auto_moderate": false, "banned_words": [], "max_article_word_count": 10000}',
+    )
+
+    # Feature flags
+    feature_flags = models.JSONField(
+        default=dict,
+        help_text='{"subscriptions_enabled": true, "print_orders_enabled": true, "comments_enabled": false, "social_auth_enabled": false, "otp_via_sms_enabled": false}',
+    )
+
     class Meta:
         verbose_name = "Site Setting"
         verbose_name_plural = "Site Settings"
 
     def __str__(self):
         return f"Settings for {self.site.domain}"
+
+    def get_pricing(self):
+        """Get pricing config with defaults merged in."""
+        defaults = {
+            "subscription_plans": {"currency": "USD"},
+            "print": {
+                "us": {"unit": "12.99", "shipping": "4.99"},
+                "international": {"unit": "14.99", "shipping": "12.99"},
+                "bulk_threshold": 5,
+                "bulk_discount_percent": "10.0",
+            },
+        }
+        config = {**defaults}
+        config.update(self.pricing_config or {})
+        return config
+
+    def get_rate_limits(self):
+        """Get rate limit config with defaults merged in."""
+        defaults = {
+            "login": {"max_attempts": 5, "window_seconds": 60},
+            "register": {"max_attempts": 3, "window_seconds": 3600},
+            "api": {"max_requests": 100, "window_seconds": 60},
+            "otp": {"max_attempts": 5, "window_seconds": 300},
+        }
+        config = {**defaults}
+        config.update(self.rate_limit_config or {})
+        return config
+
+    def get_security(self):
+        """Get security config with defaults merged in."""
+        defaults = {
+            "admin_allowed_ips": [],
+            "allowed_countries": [],
+            "token_lifetime_days": 7,
+            "password_min_length": 8,
+        }
+        config = {**defaults}
+        config.update(self.security_config or {})
+        return config
+
+    def get_content_config(self):
+        """Get content moderation config with defaults merged in."""
+        defaults = {
+            "require_editor_approval": True,
+            "auto_moderate": False,
+            "banned_words": [],
+            "max_article_word_count": 10000,
+        }
+        config = {**defaults}
+        config.update(self.content_config or {})
+        return config
+
+    def get_feature_flags(self):
+        """Get feature flags with defaults merged in."""
+        defaults = {
+            "subscriptions_enabled": True,
+            "print_orders_enabled": True,
+            "comments_enabled": False,
+            "social_auth_enabled": False,
+            "otp_via_sms_enabled": False,
+        }
+        config = {**defaults}
+        config.update(self.feature_flags or {})
+        return config
 
 
 class Category(models.Model):
@@ -290,6 +385,12 @@ class PrintOrder(models.Model):
     state = models.CharField(max_length=100, default="")
     zip_code = models.CharField(max_length=20, default="")
     order_id = models.CharField(max_length=50, unique=True)
+    payment_id = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="External payment reference",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

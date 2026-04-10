@@ -1,7 +1,7 @@
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, List, Literal, Optional, TypeVar
 
 from datetime import date, datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 T = TypeVar("T")
@@ -209,9 +209,7 @@ class ArticleCreate(BaseModel):
     excerpt: str = Field(default="", max_length=500)
     cover_image: str = ""
     cover_caption: str = Field(default="", max_length=500)
-    author_id: Optional[str] = (
-        None  # Optional — writers use their linked profile, admins can override
-    )
+    author_id: Optional[str] = None
     category_id: str
     content_type: str = Field(default="article", max_length=20)
     access: str = Field(default="public", max_length=10)
@@ -351,6 +349,13 @@ class SubscriptionOut(BaseModel):
 
 class SubscriptionCreate(BaseModel):
     plan_id: str
+    payment_id: Optional[str] = Field(
+        default=None, description="External payment reference. Required for paid plans."
+    )
+
+
+class SubscriptionCancel(BaseModel):
+    reason: str = Field(default="", max_length=500)
 
 
 # ============================================================
@@ -409,7 +414,7 @@ class EditorialStatsOut(BaseModel):
 class UserRegister(BaseModel):
     username: str = Field(min_length=3, max_length=150)
     email: str = Field(max_length=254)
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
 
 
 class UserLogin(BaseModel):
@@ -417,11 +422,31 @@ class UserLogin(BaseModel):
     password: str
 
 
+class VerifyEmail(BaseModel):
+    email: str = Field(max_length=254)
+    token: str = Field(max_length=64)
+
+
+class ResendVerification(BaseModel):
+    email: str = Field(max_length=254)
+
+
+class ForgotPassword(BaseModel):
+    email: str = Field(max_length=254)
+
+
+class ResetPassword(BaseModel):
+    email: str = Field(max_length=254)
+    token: str = Field(max_length=64)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class TokenOut(BaseModel):
     token: str
     user_id: str
     username: str
     role: str
+    is_verified: bool = False
 
 
 class UserOut(BaseModel):
@@ -432,6 +457,7 @@ class UserOut(BaseModel):
     first_name: str = ""
     last_name: str = ""
     is_active: bool = True
+    is_verified: bool = False
     date_joined: Optional[datetime] = None
 
     class Config:
@@ -445,14 +471,17 @@ class UserOut(BaseModel):
 
 class PrintOrderCreate(BaseModel):
     edition_id: str
-    quantity: int = Field(default=1, ge=1)
-    shipping_region: str = Field(default="us")
+    quantity: int = Field(default=1, ge=1, le=100)
+    shipping_region: Literal["us", "international"] = Field(default="us")
     first_name: str = Field(max_length=100)
     last_name: str = Field(max_length=100)
     street: str = Field(max_length=300)
     city: str = Field(max_length=100)
     state: str = Field(max_length=100)
     zip_code: str = Field(max_length=20)
+    payment_id: Optional[str] = Field(
+        default=None, description="External payment reference"
+    )
 
 
 class PrintOrderOut(BaseModel):

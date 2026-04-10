@@ -18,6 +18,15 @@ class User(AbstractUser):
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.VISITOR)
 
+    # Verification fields (for email/OTP verification)
+    is_verified = models.BooleanField(default=False)
+    verification_token = models.CharField(max_length=64, blank=True, default="")
+    verification_token_expires = models.DateTimeField(null=True, blank=True)
+
+    # Password reset
+    password_reset_token = models.CharField(max_length=64, blank=True, default="")
+    password_reset_token_expires = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = "users"
 
@@ -71,6 +80,12 @@ class Subscription(models.Model):
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT)
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.ACTIVE
+    )
+    payment_id = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="External payment reference (Stripe/PayPal)",
     )
     started_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)

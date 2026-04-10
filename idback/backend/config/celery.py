@@ -6,6 +6,7 @@ from celery import Celery
 
 # from celery.schedules import crontab, solar
 # from datetime import timedelta
+from celery.schedules import crontab
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 app = Celery("meridian")
@@ -16,6 +17,11 @@ app.conf.worker_send_task_events = True
 
 
 app.conf.beat_schedule = {
+    # Cleanup expired auth tokens every day at 3 AM UTC
+    "cleanup-expired-tokens": {
+        "task": "common.tasks.cleanup_expired_tokens",
+        "schedule": crontab(hour=3, minute=0),
+    },
     # 'task-every-30-minutes': {
     #     'task': 'myapp.tasks.some_task',w
     #     'schedule': 1800.0,  # 30 minutes
