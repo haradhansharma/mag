@@ -9,19 +9,19 @@ import alpinejs from '@astrojs/alpinejs';
 
 import sitemap from '@astrojs/sitemap';
 
+import cloudflare from '@astrojs/cloudflare';
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://meridian-mag.com',
-  output: 'static',
+  output: 'server',
   build: {
     assets: '_astro',
   },
   image: {
     domains: [],
   },
-  adapter: node({
-    mode: 'standalone'
-  }),
+  adapter: cloudflare(),
 
   vite: {
     plugins: [tailwindcss()],

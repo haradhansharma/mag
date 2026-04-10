@@ -1,4 +1,4 @@
-# tradingweb/backend/Dockerfile
+# meridian/idback/backend/Dockerfile
 
 # Use a slim, stable Python image
 FROM python:3.10-slim
@@ -18,14 +18,14 @@ RUN apt-get update \
 
 # --- ADD NON-ROOT USER ---
 # Create a user named 'appuser' with a home directory
-RUN useradd -ms /bin/bash haradhansharma
+RUN useradd -ms /bin/bash appuser
 
 # Create directories and set permissions for the non-root user
 # -------------------------------------------------------------
 # Create the logs directory if it doesn't exist
 RUN mkdir -p /app/logs
 # Change ownership of the logs directory to the newly created 'appuser'
-RUN chown -R haradhansharma:haradhansharma /app
+RUN chown -R appuser:appuser /app
 
 # Set the working directory
 WORKDIR /app
@@ -39,16 +39,16 @@ COPY . .
 
 # 3. Fix permissions for the whole app folder
 RUN mkdir -p /app/logs && \
-    chown -R haradhansharma:haradhansharma /app
+    chown -R appuser:appuser /app
 
 # --- SWITCH TO NON-ROOT USER ---
-USER haradhansharma
+USER appuser
 
 # Expose port (Nginx reverse proxy will map to this)
 EXPOSE 8085
 
 # The production startup command: Gunicorn orchestrating Uvicorn
 # myproject.asgi:application assumes your Django project name is 'myproject'
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", \
+CMD ["gunicorn", "--bind", "0.0.0.0:8085", "--workers", "4", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "config.asgi:application"]

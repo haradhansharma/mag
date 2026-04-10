@@ -7,13 +7,13 @@ from common.models import SiteConfig, SiteSettings
 
 class SiteConfigAdmin(SiteAdmin):
     list_display = ["domain", "name", "site_title", "support_email", "maintenance_mode"]
-    fieldsets = (
-        (None, {"fields": ("domain", "name")}),
-        (
-            "Custom fields",
-            {"fields": ("site_title", "support_email", "maintenance_mode")},
-        ),
-    )
+    # fieldsets = (
+    #     (None, {"fields": ("domain", "name")}),
+    #     (
+    #         "Custom fields",
+    #         {"fields": ("site_title", "support_email", "maintenance_mode")},
+    #     ),
+    # )
 
 
 class SiteSettingsAdmin(admin.ModelAdmin):

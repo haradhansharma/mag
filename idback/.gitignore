@@ -53,3 +53,11 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# Windows junk
+*:Zone.Identifier
+* (1).*
+* (2).*
+* (3).*
+
+# Build artifacts
+public/downloads/
