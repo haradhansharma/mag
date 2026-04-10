@@ -18,15 +18,15 @@ import { getAllArticles, getArticlePageData } from '@data/service';
 import { formatDate, getInitials } from '@utils/helpers';
 import type { Article } from '@data/types';
 
-export function getStaticPaths() {
-  const articles = getAllArticles();
+export async function getStaticPaths() {
+  const articles = await getAllArticles();
   return articles.map((article) => ({
     params: { slug: article.slug },
   }));
 }
 
 const { slug } = Astro.params;
-const data = getArticlePageData(slug!);
+const data = await getArticlePageData(slug!);
 
 if (!data) {
   return Astro.redirect('/404');

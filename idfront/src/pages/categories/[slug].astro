@@ -20,8 +20,8 @@ import { getAllCategories, getCategoryPageData } from '@data/service';
 import { buildCollectionJsonLd, formatDate, getInitials, getCategoryColorClasses } from '@utils/helpers';
 
 // --- Static paths for all categories ---
-export function getStaticPaths() {
-  const categories = getAllCategories();
+export async function getStaticPaths() {
+  const categories = await getAllCategories();
   return categories.map((cat) => ({
     params: { slug: cat.slug },
   }));
@@ -29,7 +29,7 @@ export function getStaticPaths() {
 
 // --- Fetch category page data ---
 const { slug } = Astro.params;
-const data = getCategoryPageData(slug!, { page: 1, perPage: 9 });
+const data = await getCategoryPageData(slug!, { page: 1, perPage: 9 });
 
 // Redirect to 404 if category not found
 if (!data) {
@@ -39,7 +39,7 @@ if (!data) {
 const { category, articles, totalPages, totalArticles, currentPage } = data;
 
 // --- All categories for the tab pills ---
-const allCategories = getAllCategories();
+const allCategories = await getAllCategories();
 
 // --- Featured article: first pinned, or first article ---
 const featuredArticle = articles.find(a => a.pinned) || articles[0];

@@ -14,7 +14,7 @@ import EditionCard from '@components/common/EditionCard.astro';
 import { getHomepageData } from '@data/service';
 import { formatDate, getCategoryColorClasses } from '@utils/helpers';
 
-const data = getHomepageData();
+const data = await getHomepageData();
 const {
   heroArticle,
   trending,

@@ -10,8 +10,8 @@ import { getLatestArticles, getAllCategories } from '@data/service';
 import type { APIContext } from 'astro';
 
 export async function GET(context: APIContext) {
-  const allArticles = getLatestArticles(50);
-  const premiumCategories = getAllCategories()
+  const allArticles = await getLatestArticles(50);
+  const premiumCategories = (await getAllCategories())
     .filter(c => c.access === 'premium')
     .map(c => c.id);
 

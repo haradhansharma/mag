@@ -14,8 +14,8 @@ export function getStaticPaths() {
 }
 
 const { item } = Astro.props;
-const authors = getAllAuthors();
-const categories = getAllCategories();
+const authors = await getAllAuthors();
+const categories = await getAllCategories();
 ---
 
 <BaseLayout

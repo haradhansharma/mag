@@ -13,7 +13,7 @@ import NewsletterSignup from '@components/common/NewsletterSignup.astro';
 import { getSiteConfig } from '@data/service';
 
 // Get subscription plans from site config
-const { subscriptionPlans: plans } = getSiteConfig();
+const { subscriptionPlans: plans } = getSiteConfig(); // getSiteConfig is sync
 
 // SEO
 const title = 'Subscribe to MERIDIAN — Unlock Premium Journalism';

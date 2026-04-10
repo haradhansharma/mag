@@ -6,7 +6,7 @@
 import { getTrendingArticles } from '@data/service';
 import { getInitials, formatDate } from '@utils/helpers';
 
-const trendingArticles = getTrendingArticles().slice(0, 3);
+const trendingArticles = (await getTrendingArticles()).slice(0, 3);
 ---
 
 <div class="relative" x-data="{ searchOpen: false, searchQuery: '' }">

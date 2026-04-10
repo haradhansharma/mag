@@ -5,7 +5,7 @@
 import { getSiteConfig, getPublicCategories } from '@data/service';
 
 const { footerLinks, socialLinks } = getSiteConfig();
-const publicCategories = getPublicCategories();
+const publicCategories = await getPublicCategories();
 const currentYear = new Date().getFullYear();
 
 // Social icon SVG paths

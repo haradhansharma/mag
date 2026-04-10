@@ -22,7 +22,7 @@ import { getAllEditions } from '@data/service';
 import { formatEditionDateRange, formatDate, paginate } from '@utils/helpers';
 
 // --- Fetch all published editions ---
-const allEditions = getAllEditions();
+const allEditions = await getAllEditions();
 const editionCount = allEditions.length;
 
 // --- Extract unique years and months for filter dropdowns ---

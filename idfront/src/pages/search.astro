@@ -19,12 +19,12 @@ let searchResults = null;
 let totalResults = 0;
 
 if (query.trim()) {
-  searchResults = searchArticles(query, { page: 1, perPage: 12 });
+  searchResults = await searchArticles(query, { page: 1, perPage: 12 });
   totalResults = searchResults.totalResults;
 }
 
 // Trending articles for empty-state suggestions
-const trendingArticles = getTrendingArticles();
+const trendingArticles = await getTrendingArticles();
 
 // SEO
 const title = query

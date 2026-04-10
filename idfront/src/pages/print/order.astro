@@ -12,7 +12,7 @@ import NewsletterSignup from '@components/common/NewsletterSignup.astro';
 import { getAllEditions } from '@data/service';
 import { formatEditionDateRange } from '@utils/helpers';
 
-const allEditions = getAllEditions();
+const allEditions = await getAllEditions();
 const printReadyEditions = allEditions.filter(e => e.printReady);
 
 // Serialize edition data for Alpine.js (client-side script can't use Astro expressions)

@@ -15,8 +15,8 @@ import { formatEditionDateRange, getInitials } from '@utils/helpers';
 import type { Article } from '@data/types';
 
 // --- Static paths for all published editions ---
-export function getStaticPaths() {
-  const editions = getAllEditions();
+export async function getStaticPaths() {
+  const editions = await getAllEditions();
   return editions.map((edition) => ({
     params: { slug: edition.slug },
   }));
@@ -24,7 +24,7 @@ export function getStaticPaths() {
 
 // --- Fetch edition data ---
 const { slug } = Astro.params;
-const edition = getEditionBySlug(slug!);
+const edition = await getEditionBySlug(slug!);
 
 // Redirect to 404 if edition not found
 if (!edition) {
@@ -73,7 +73,7 @@ function getCategoryColors(name: string) {
 let globalArticleNum = 0;
 
 // --- Get other editions for sidebar (exclude current, up to 3) ---
-const allEditions = getAllEditions();
+const allEditions = await getAllEditions();
 const otherEditions = allEditions
   .filter(e => e.id !== edition.id)
   .sort((a, b) => b.number - a.number)

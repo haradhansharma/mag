@@ -11,7 +11,7 @@ import NewsletterSignup from '@components/common/NewsletterSignup.astro';
 import { getAllAuthors } from '../data/service.ts';
 
 // Get all authors for team section
-const authors = getAllAuthors();
+const authors = await getAllAuthors();
 
 // SEO
 const title = 'About MERIDIAN — Our Mission & Team';

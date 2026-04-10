@@ -12,8 +12,8 @@ import { getAllAuthors, getAuthorBySlug, getArticlesByAuthorId } from '../../dat
 import { getInitials } from '@utils/helpers';
 
 // ==================== Static Paths ====================
-export function getStaticPaths() {
-  const authors = getAllAuthors();
+export async function getStaticPaths() {
+  const authors = await getAllAuthors();
   return authors.map((author) => ({
     params: { slug: author.slug },
   }));
@@ -21,7 +21,7 @@ export function getStaticPaths() {
 
 // ==================== Page Data ====================
 const { slug } = Astro.params;
-const author = getAuthorBySlug(slug);
+const author = await getAuthorBySlug(slug!);
 
 // 404 fallback — redirect if author not found
 if (!author) {
@@ -29,7 +29,7 @@ if (!author) {
 }
 
 // Get author's articles
-const articles = getArticlesByAuthorId(author.id);
+const articles = await getArticlesByAuthorId(author.id);
 const initials = getInitials(author.name);
 
 // SEO

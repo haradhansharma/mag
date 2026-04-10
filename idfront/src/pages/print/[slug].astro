@@ -14,8 +14,8 @@ import ArticlePrint from '@components/print/ArticlePrint.astro';
 import { getAllEditions } from '@data/service';
 import { formatEditionDateRange } from '@utils/helpers';
 
-export function getStaticPaths() {
-  const editions = getAllEditions().filter(e => e.printReady);
+export async function getStaticPaths() {
+  const editions = (await getAllEditions()).filter(e => e.printReady);
 
   return editions.map(edition => ({
     params: { slug: edition.slug },
