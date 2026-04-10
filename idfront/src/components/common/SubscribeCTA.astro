@@ -1,0 +1,94 @@
+---
+/**
+ * SubscribeCTA.astro
+ * Subscription plan pricing cards with highlighted recommendation.
+ *
+ * Props:
+ *   plans: SubscriptionPlan[]
+ *
+ * Renders a responsive grid of plan cards. Highlighted plans receive
+ * an accent ring and a "Recommended" badge.
+ */
+
+import type { SubscriptionPlan } from '@data/types';
+
+interface Props {
+  plans: SubscriptionPlan[];
+}
+
+const { plans } = Astro.props;
+
+/**
+ * Human-readable description for each plan type.
+ */
+function getPlanDescription(type: SubscriptionPlan['type']): string {
+  const descriptions: Record<SubscriptionPlan['type'], string> = {
+    free: 'Explore MERIDIAN with limited access',
+    premium: 'Full digital access',
+    print: 'Weekly print edition',
+    premium_print: 'Digital + Print access',
+  };
+  return descriptions[type];
+}
+---
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  {plans.map((plan) => (
+    <div
+      class:list={[
+        'bg-white dark:bg-gray-900 rounded-2xl p-8 border border-border dark:border-gray-800 card-hover',
+        plan.highlighted && 'ring-2 ring-accent',
+      ]}
+    >
+      {plan.highlighted && (
+        <span class="inline-flex items-center px-3 py-1 bg-accent/10 text-accent text-xs font-bold rounded-full mb-4">
+          Recommended
+        </span>
+      )}
+
+      <h3 class="text-lg font-bold mb-1">{plan.name}</h3>
+      <p class="text-text-muted dark:text-gray-500 text-sm mb-6">
+        {getPlanDescription(plan.type)}
+      </p>
+
+      <div class="mb-6">
+        <span class="text-4xl font-bold">
+          {plan.price === 0 ? '$0' : `$${plan.price}`}
+        </span>
+        <span class="text-text-muted dark:text-gray-500">
+          /{plan.interval}
+        </span>
+      </div>
+
+      <ul class="space-y-3 mb-8">
+        {plan.features.map((feature) => (
+          <li class="flex items-start gap-3">
+            <svg
+              class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span class="text-sm text-text-secondary dark:text-gray-400">
+              {feature}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <a
+        href="/subscribe"
+        class:list={[
+          'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
+          plan.highlighted
+            ? 'bg-accent hover:bg-sky-600 text-white shadow-md'
+            : 'border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800',
+        ]}
+      >
+        {plan.price === 0 ? 'Get Started Free' : 'Subscribe Now'}
+      </a>
+    </div>
+  ))}
+</div>

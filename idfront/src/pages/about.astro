@@ -1,0 +1,202 @@
+---
+/**
+ * About Page — /about
+ * Company mission, team, values, and newsletter signup.
+ * Static informational page.
+ */
+
+import BaseLayout from '@layouts/BaseLayout.astro';
+import AuthorCard from '@components/common/AuthorCard.astro';
+import NewsletterSignup from '@components/common/NewsletterSignup.astro';
+import { getAllAuthors } from '../data/service.ts';
+
+// Get all authors for team section
+const authors = getAllAuthors();
+
+// SEO
+const title = 'About MERIDIAN — Our Mission & Team';
+const description = 'MERIDIAN was founded to cut through the noise of the information age and deliver synthesized, thoughtful journalism. Meet our team of expert writers and editors.';
+---
+
+<BaseLayout title={title} description={description} canonicalUrl="/about">
+  <div class="page-transition">
+
+    <!-- ==================== Hero Section ==================== -->
+    <section class="bg-gradient-to-br from-primary to-secondary py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="font-editorial text-4xl sm:text-5xl font-bold text-white mb-3">
+          About MERIDIAN
+        </h1>
+        <p class="font-editorial text-xl sm:text-2xl text-gray-300 italic mb-4">
+          Your World, Synthesized
+        </p>
+        <p class="text-gray-400 max-w-2xl mx-auto text-lg">
+          We believe in clarity over chaos, depth over speed, and understanding over outrage.
+          MERIDIAN is where curiosity meets context.
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== Mission Section ==================== -->
+    <section class="py-16 bg-white dark:bg-gray-950">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
+          <!-- Mission Text (left, 3 cols) -->
+          <div class="lg:col-span-3">
+            <span class="text-accent text-sm font-bold uppercase tracking-wider mb-3 block">Our Mission</span>
+            <h2 class="font-editorial text-3xl sm:text-4xl font-bold mb-6">
+              Journalism That Informs, Not Overwhelms
+            </h2>
+            <div class="space-y-4 text-text-secondary dark:text-gray-400 leading-relaxed">
+              <p>
+                MERIDIAN was founded with a singular vision — to cut through the noise of the information age
+                and deliver synthesized, thoughtful journalism that helps readers truly understand the world
+                around them. In an era of endless scrolling and surface-level headlines, we go deeper.
+              </p>
+              <p>
+                Our team of expert writers and editors spans six continents, covering everything from
+                quantum computing breakthroughs to climate policy, from cultural movements to global
+                geopolitics. Every story is crafted to provide context, clarity, and genuine insight.
+              </p>
+              <p>
+                We publish 24 articles per week across 11 categories, organized into weekly editions that
+                give you a structured, digestible reading experience. Whether you read on your phone during
+                your commute or flip through our print edition on Sunday morning, MERIDIAN meets you where
+                you are.
+              </p>
+            </div>
+          </div>
+
+          <!-- Stats Grid (right, 2 cols) -->
+          <div class="lg:col-span-2">
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Stat 1 -->
+              <div class="bg-surface dark:bg-gray-900 rounded-xl p-5 border border-border dark:border-gray-800 text-center">
+                <div class="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
+                </div>
+                <div class="text-2xl font-bold mb-1">24</div>
+                <div class="text-xs text-text-muted dark:text-gray-500 font-medium">Articles / Week</div>
+              </div>
+
+              <!-- Stat 2 -->
+              <div class="bg-surface dark:bg-gray-900 rounded-xl p-5 border border-border dark:border-gray-800 text-center">
+                <div class="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                </div>
+                <div class="text-2xl font-bold mb-1">11</div>
+                <div class="text-xs text-text-muted dark:text-gray-500 font-medium">Categories</div>
+              </div>
+
+              <!-- Stat 3 -->
+              <div class="bg-surface dark:bg-gray-900 rounded-xl p-5 border border-border dark:border-gray-800 text-center">
+                <div class="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div class="text-2xl font-bold mb-1">5</div>
+                <div class="text-xs text-text-muted dark:text-gray-500 font-medium">Editions</div>
+              </div>
+
+              <!-- Stat 4 -->
+              <div class="bg-surface dark:bg-gray-900 rounded-xl p-5 border border-border dark:border-gray-800 text-center">
+                <div class="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div class="text-2xl font-bold mb-1">8</div>
+                <div class="text-xs text-text-muted dark:text-gray-500 font-medium">Expert Writers</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Team Section ==================== -->
+    <section class="py-16 bg-surface dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <span class="text-accent text-sm font-bold uppercase tracking-wider mb-3 block">The People Behind the Stories</span>
+          <h2 class="font-editorial text-3xl sm:text-4xl font-bold mb-3">Our Team</h2>
+          <p class="text-text-secondary dark:text-gray-400 max-w-xl mx-auto">
+            World-class journalists, scientists, and storytellers dedicated to bringing you the truth.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {authors.map((author) => (
+            <AuthorCard author={author} />
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Values Section ==================== -->
+    <section class="py-16 bg-white dark:bg-gray-950">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <span class="text-accent text-sm font-bold uppercase tracking-wider mb-3 block">What Drives Us</span>
+          <h2 class="font-editorial text-3xl sm:text-4xl font-bold mb-3">Our Values</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <!-- Value 1: Accuracy First -->
+          <div class="bg-surface dark:bg-gray-900 rounded-2xl p-8 border border-border dark:border-gray-800 text-center">
+            <div class="w-14 h-14 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 class="font-editorial text-xl font-bold mb-3">Accuracy First</h3>
+            <p class="text-text-secondary dark:text-gray-400 text-sm leading-relaxed">
+              Every fact is verified, every source is cited, and every claim is scrutinized. We would
+              rather be right than first. Our editorial standards are non-negotiable, and we believe
+              trust is earned through relentless commitment to truth.
+            </p>
+          </div>
+
+          <!-- Value 2: Global Perspective -->
+          <div class="bg-surface dark:bg-gray-900 rounded-2xl p-8 border border-border dark:border-gray-800 text-center">
+            <div class="w-14 h-14 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg class="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="font-editorial text-xl font-bold mb-3">Global Perspective</h3>
+            <p class="text-text-secondary dark:text-gray-400 text-sm leading-relaxed">
+              The world doesn&rsquo;t stop at borders, and neither does our coverage. With correspondents
+              on every continent, we bring you stories that matter regardless of geography. From Nairobi
+              to Tokyo, Buenos Aires to Berlin — we see the full picture.
+            </p>
+          </div>
+
+          <!-- Value 3: Reader-Focused -->
+          <div class="bg-surface dark:bg-gray-900 rounded-2xl p-8 border border-border dark:border-gray-800 text-center">
+            <div class="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg class="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </div>
+            <h3 class="font-editorial text-xl font-bold mb-3">Reader-Focused</h3>
+            <p class="text-text-secondary dark:text-gray-400 text-sm leading-relaxed">
+              We write for you, not for algorithms. Our articles are designed to inform, not to enrage
+              or exhaust. We respect your time with clear writing, meaningful context, and a commitment
+              to leaving you smarter than we found you.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Newsletter CTA ==================== -->
+    <NewsletterSignup variant="section" />
+
+  </div>
+</BaseLayout>

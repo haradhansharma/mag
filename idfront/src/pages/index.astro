@@ -1,0 +1,341 @@
+---
+// ============================================================
+// MERIDIAN Magazine — Homepage (Mockup Rewrite)
+// ============================================================
+// Full-bleed hero, trending strip, featured stories grid,
+// category sections (Science, World News), newsletter CTA,
+// and latest edition preview.
+// All data comes from getHomepageData() in the service layer.
+
+import BaseLayout from '@layouts/BaseLayout.astro';
+import ArticleCard from '@components/common/ArticleCard.astro';
+import NewsletterSignup from '@components/common/NewsletterSignup.astro';
+import EditionCard from '@components/common/EditionCard.astro';
+import { getHomepageData } from '@data/service';
+import { formatDate, getCategoryColorClasses } from '@utils/helpers';
+
+const data = getHomepageData();
+const {
+  heroArticle,
+  trending,
+  featured,
+  latestScience,
+  latestWorld,
+  latestEnvironment,
+  latestEdition,
+  editionCount,
+} = data;
+
+// Use first featured as the left big card, rest as stacked right cards
+const [featuredMain, ...featuredStack] = featured.length > 0 ? featured : [];
+---
+
+<BaseLayout title="MERIDIAN — Your World, Synthesized" canonicalUrl="/">
+  <div class="page-transition">
+
+    <!-- ========== 1. HERO SECTION — Full-Bleed Cover ========== -->
+    {heroArticle ? (
+      <section class="relative h-[70vh] min-h-[500px] max-h-[700px] overflow-hidden">
+        <!-- Background Image -->
+        <img
+          src={heroArticle.coverImage}
+          alt={heroArticle.title}
+          class="absolute inset-0 w-full h-full object-cover"
+          fetchpriority="high"
+          width="1920"
+          height="1080"
+        />
+
+        <!-- Gradient Overlays -->
+        <div class="absolute inset-0 bg-gradient-to-t from-primary via-primary/60 to-primary/30"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent"></div>
+
+        <!-- Content -->
+        <div class="relative z-10 h-full flex flex-col justify-end max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
+          <!-- Edition Badge + Date -->
+          <div class="flex items-center gap-3 mb-4">
+            <span class="inline-flex items-center px-3 py-1 bg-accent-warm text-white text-xs font-bold rounded-full uppercase tracking-wider">
+              Edition #{latestEdition?.number || editionCount}
+            </span>
+            <span class="text-sm text-gray-300">
+              {latestEdition ? formatDate(latestEdition.publishedAt, 'medium') : ''}
+            </span>
+          </div>
+
+          <!-- Title -->
+          <h1 class="font-editorial text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl mb-4">
+            {heroArticle.title}
+          </h1>
+
+          <!-- Excerpt -->
+          <p class="text-gray-300 text-lg max-w-2xl mb-8 line-clamp-2">
+            {heroArticle.excerpt}
+          </p>
+
+          <!-- Buttons -->
+          <div class="flex flex-wrap gap-4">
+            <a
+              href={`/articles/${heroArticle.slug}`}
+              class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-sky-600 text-white font-semibold rounded-lg transition-colors shadow-lg"
+            >
+              Read Cover Story
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+            {latestEdition && (
+              <a
+                href={`/editions/${latestEdition.slug}`}
+                class="inline-flex items-center gap-2 px-6 py-3 border-2 border-white/30 hover:border-white/60 text-white font-semibold rounded-lg transition-colors"
+              >
+                Full Edition
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+    ) : (
+      <!-- Fallback hero when no hero article -->
+      <section class="relative h-[70vh] min-h-[500px] max-h-[700px] overflow-hidden bg-primary flex items-center justify-center">
+        <div class="text-center px-4">
+          <h1 class="font-editorial text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4">
+            MERIDIAN
+          </h1>
+          <p class="text-gray-300 text-lg">Your World, Synthesized</p>
+        </div>
+      </section>
+    )}
+
+    <!-- ========== 2. TRENDING STRIP ========== -->
+    <section class="bg-white dark:bg-gray-950 border-b border-border dark:border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-5">
+          <!-- Running Man Icon -->
+          <svg class="w-6 h-6 text-accent-warm" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/>
+          </svg>
+          <h2 class="font-editorial text-2xl font-bold">Trending Now</h2>
+        </div>
+
+        <!-- Horizontal Scroll Cards -->
+        <div class="flex gap-4 overflow-x-auto pb-2 trending-scroll snap-x snap-mandatory">
+          {trending.map((article) => (
+            <div class="flex-shrink-0 w-48 sm:w-56 snap-start">
+              <a href={`/articles/${article.slug}`} class="group block">
+                <div class="w-48 sm:w-56 h-32 rounded-xl overflow-hidden relative mb-2">
+                  <img
+                    src={article.coverImage}
+                    alt={article.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    width="224"
+                    height="128"
+                  />
+                  <!-- Category Badge Overlay -->
+                  <div class="absolute top-2 left-2">
+                    <span class:list={['px-2 py-0.5 text-white text-[10px] font-bold rounded uppercase', getCategoryColorClasses(article.category?.color || 'blue').bg]}>
+                      {article.category?.name || 'Uncategorized'}
+                    </span>
+                  </div>
+                </div>
+                <h3 class="font-editorial text-sm font-bold line-clamp-2 group-hover:text-accent transition-colors">
+                  {article.title}
+                </h3>
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 3. FEATURED STORIES GRID ========== -->
+    {featured.length > 0 && (
+      <section class="py-12 sm:py-16 bg-surface dark:bg-gray-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-8">
+            <h2 class="font-editorial text-2xl sm:text-3xl font-bold">Featured Stories</h2>
+            <a
+              href="/categories/science-tech"
+              class="text-sm text-accent hover:text-sky-600 font-semibold transition-colors flex items-center gap-1"
+            >
+              View All
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- 12-col Grid: Left 7 = big featured, Right 5 = 3 stacked -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left: Large Featured Card -->
+            <div class="lg:col-span-7">
+              {featuredMain ? (
+                <ArticleCard article={featuredMain} variant="featured" />
+              ) : (
+                <ArticleCard article={featured[0]} variant="featured" />
+              )}
+            </div>
+
+            <!-- Right: 3 Stacked Compact Cards -->
+            <div class="lg:col-span-5 flex flex-col gap-4">
+              {featuredStack.slice(0, 3).map((article) => (
+                <ArticleCard article={article} variant="compact" />
+              ))}
+              {featuredStack.length < 3 && latestScience.slice(0, 3 - featuredStack.length).map((article) => (
+                <ArticleCard article={article} variant="compact" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- ========== 4. LATEST IN SCIENCE ========== -->
+    {latestScience.length > 0 && (
+      <section class="py-12 sm:py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Header with accent left bar -->
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+              <div class="w-1 h-8 bg-accent rounded-full"></div>
+              <h2 class="font-editorial text-2xl sm:text-3xl font-bold">Latest in Science</h2>
+            </div>
+            <a
+              href="/categories/science-tech"
+              class="text-sm text-accent hover:text-sky-600 font-semibold transition-colors flex items-center gap-1"
+            >
+              See All
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- 3-column Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {latestScience.map((article) => (
+              <ArticleCard article={article} variant="grid" />
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- ========== 5. LATEST IN WORLD NEWS ========== -->
+    {latestWorld.length > 0 && (
+      <section class="py-12 sm:py-16 bg-surface dark:bg-gray-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Header with accent-warm left bar -->
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+              <div class="w-1 h-8 bg-accent-warm rounded-full"></div>
+              <h2 class="font-editorial text-2xl sm:text-3xl font-bold">Latest in World News</h2>
+            </div>
+            <a
+              href="/categories/world-news"
+              class="text-sm text-accent hover:text-sky-600 font-semibold transition-colors flex items-center gap-1"
+            >
+              See All
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- 3-column Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {latestWorld.map((article) => (
+              <ArticleCard article={article} variant="grid" />
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- ========== 6. LATEST IN ENVIRONMENT ========== -->
+    {latestEnvironment.length > 0 && (
+      <section class="py-12 sm:py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Header with green left bar -->
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+              <div class="w-1 h-8 bg-green-600 rounded-full"></div>
+              <h2 class="font-editorial text-2xl sm:text-3xl font-bold">Latest in Environment</h2>
+            </div>
+            <a
+              href="/categories/environment"
+              class="text-sm text-accent hover:text-sky-600 font-semibold transition-colors flex items-center gap-1"
+            >
+              See All
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- 3-column Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {latestEnvironment.map((article) => (
+              <ArticleCard article={article} variant="grid" />
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- ========== 7. NEWSLETTER CTA ========== -->
+    <NewsletterSignup variant="section" />
+
+    <!-- ========== 8. LATEST EDITION PREVIEW ========== -->
+    {latestEdition && (
+      <section class="py-12 sm:py-16 bg-surface dark:bg-gray-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+            <!-- Edition Card -->
+            <div class="flex-shrink-1">
+              <EditionCard edition={latestEdition} />
+            </div>
+
+            <!-- Edition Info -->
+            <div class="flex-1 text-center lg:text-left">
+              <span class="inline-flex items-center px-3 py-1 bg-accent-warm/10 text-accent-warm text-xs font-bold rounded-full mb-4">
+                Latest Edition — #{latestEdition.number}
+              </span>
+              <h2 class="font-editorial text-2xl sm:text-3xl font-bold mb-3">
+                {latestEdition.title}
+              </h2>
+              {latestEdition.subtitle && (
+                <p class="text-text-secondary dark:text-gray-400 mb-6 max-w-lg">
+                  {latestEdition.subtitle}
+                </p>
+              )}
+              <div class="flex flex-wrap justify-center lg:justify-start gap-3">
+                <a
+                  href={`/editions/${latestEdition.slug}`}
+                  class="inline-flex items-center gap-2 px-6 py-3 bg-primary dark:bg-gray-800 text-white font-semibold rounded-lg hover:bg-secondary dark:hover:bg-gray-700 transition-colors"
+                >
+                  Read Full Edition
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+                <a
+                  href="/editions/archive"
+                  class="inline-flex items-center gap-2 px-6 py-3 border border-border dark:border-gray-700 text-text-primary dark:text-gray-200 font-semibold rounded-lg hover:bg-surface dark:hover:bg-gray-800 transition-colors"
+                >
+                  Browse All Editions
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+  </div>
+</BaseLayout>

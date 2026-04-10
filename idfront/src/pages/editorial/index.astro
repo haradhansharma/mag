@@ -1,0 +1,280 @@
+---
+// Editorial Dashboard — Overview
+// Main control panel for editorial workflow management.
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/common/Breadcrumbs.astro';
+import { getEditorialQueue, getEditorialStats, getRecentActivity } from '@data/dummy/editorial';
+
+const stats = getEditorialStats();
+const activity = getRecentActivity(10);
+const queue = getEditorialQueue();
+const recentSubmissions = queue.slice(0, 5);
+---
+
+<BaseLayout
+  title="Editorial Dashboard — MERIDIAN"
+  description="Manage your content pipeline, review submissions, and track editorial progress."
+  canonicalUrl="/editorial"
+>
+  <div class="bg-surface dark:bg-gray-950 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Breadcrumbs -->
+      <Breadcrumbs items={[
+        { label: 'Home', href: '/' },
+        { label: 'Editorial Dashboard' },
+      ]} />
+
+      <!-- Page Header -->
+      <div class="mt-6 mb-8">
+        <h1 class="font-editorial text-3xl sm:text-4xl font-bold text-text-primary dark:text-gray-100">
+          Editorial Dashboard
+        </h1>
+        <p class="mt-2 text-text-secondary dark:text-gray-400">
+          Manage your content pipeline
+        </p>
+      </div>
+
+      <!-- Main Grid: Sidebar + Content -->
+      <div class="grid lg:grid-cols-[260px_1fr] gap-8">
+        <!-- Sidebar Navigation -->
+        <aside class="hidden lg:block">
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-4 sticky top-24">
+            <nav class="flex flex-col gap-1">
+              <!-- Active: Dashboard -->
+              <a href="/editorial" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-accent/10 text-accent font-semibold text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                Dashboard
+              </a>
+              <!-- Queue -->
+              <a href="/editorial/queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Queue
+              </a>
+              <!-- Articles -->
+              <a href="/editorial/articles" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Articles
+              </a>
+              <!-- New Article -->
+              <a href="/editorial/articles/new" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Article
+              </a>
+            </nav>
+
+            <hr class="my-4 border-border dark:border-gray-800" />
+
+            <!-- Quick Stats -->
+            <div class="space-y-3">
+              <h3 class="text-xs font-semibold text-text-muted dark:text-gray-500 uppercase tracking-wider px-3">Quick Stats</h3>
+              <div class="flex items-center justify-between px-3">
+                <span class="text-sm text-text-secondary dark:text-gray-400">Drafts</span>
+                <span class="text-sm font-semibold text-text-primary dark:text-gray-200">{stats.totalDrafts}</span>
+              </div>
+              <div class="flex items-center justify-between px-3">
+                <span class="text-sm text-text-secondary dark:text-gray-400">In Review</span>
+                <span class="text-sm font-semibold text-amber-600 dark:text-amber-400">{stats.inReview}</span>
+              </div>
+              <div class="flex items-center justify-between px-3">
+                <span class="text-sm text-text-secondary dark:text-gray-400">Approved</span>
+                <span class="text-sm font-semibold text-green-600 dark:text-green-400">{stats.approved}</span>
+              </div>
+              <div class="flex items-center justify-between px-3">
+                <span class="text-sm text-text-secondary dark:text-gray-400">Published</span>
+                <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">{stats.publishedThisWeek}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="space-y-8">
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Articles -->
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="text-2xl font-bold text-text-primary dark:text-gray-100">{stats.totalArticles}</div>
+              <div class="text-sm text-text-muted dark:text-gray-500">Total Articles</div>
+            </div>
+            <!-- In Review -->
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.inReview}</div>
+              <div class="text-sm text-text-muted dark:text-gray-500">In Review</div>
+            </div>
+            <!-- Published This Week -->
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="text-2xl font-bold text-green-600 dark:text-green-400">{stats.publishedThisWeek}</div>
+              <div class="text-sm text-text-muted dark:text-gray-500">Published This Week</div>
+            </div>
+            <!-- Avg Reading Time -->
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="text-2xl font-bold text-text-primary dark:text-gray-100">{stats.avgReadingTime}m</div>
+              <div class="text-sm text-text-muted dark:text-gray-500">Avg Reading Time</div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="flex flex-wrap gap-3">
+            <a href="/editorial/articles/new" class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Create New Article
+            </a>
+            <a href="/editorial/queue" class="inline-flex items-center gap-2 px-5 py-2.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-sm font-semibold rounded-xl transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+              Review Queue
+            </a>
+          </div>
+
+          <!-- Recent Activity + Recent Submissions -->
+          <div class="grid lg:grid-cols-2 gap-8">
+            <!-- Recent Activity Feed -->
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+              <h2 class="font-editorial text-lg font-bold text-text-primary dark:text-gray-100 mb-4">Recent Activity</h2>
+              <div class="space-y-0">
+                {activity.slice(0, 8).map((item) => (
+                  <div class="flex gap-3 py-3 border-b border-border/50 dark:border-gray-800/50 last:border-0">
+                    <div class="flex-shrink-0 mt-0.5">
+                      {item.action === 'published' && (
+                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                      )}
+                      {item.action === 'approved' && (
+                        <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+                        </div>
+                      )}
+                      {item.action === 'rejected' && (
+                        <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </div>
+                      )}
+                      {item.action === 'submitted' && (
+                        <div class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                        </div>
+                      )}
+                      {(item.action === 'created' || item.action === 'edited') && (
+                        <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </div>
+                      )}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-sm text-text-primary dark:text-gray-200 truncate">{item.articleTitle}</p>
+                      <p class="text-xs text-text-muted dark:text-gray-500 mt-0.5">
+                        <span class="font-medium text-text-secondary dark:text-gray-400">{item.performedBy}</span>
+                        {' — '}
+                        {item.action === 'published' && 'published'}
+                        {item.action === 'approved' && 'approved'}
+                        {item.action === 'rejected' && 'rejected'}
+                        {item.action === 'submitted' && 'submitted'}
+                        {item.action === 'created' && 'created draft'}
+                        {item.action === 'edited' && 'edited'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <!-- Recent Submissions Table -->
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="font-editorial text-lg font-bold text-text-primary dark:text-gray-100">Recent Submissions</h2>
+                <a href="/editorial/queue" class="text-sm text-accent hover:text-sky-600 transition-colors font-medium">View all</a>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-text-muted dark:text-gray-500 border-b border-border dark:border-gray-800">
+                      <th class="pb-3 font-medium">Title</th>
+                      <th class="pb-3 font-medium hidden sm:table-cell">Author</th>
+                      <th class="pb-3 font-medium">Status</th>
+                      <th class="pb-3 font-medium hidden md:table-cell">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentSubmissions.map((item) => (
+                      <tr class="border-b border-border/50 dark:border-gray-800/50 last:border-0">
+                        <td class="py-3 pr-4">
+                          <span class="text-text-primary dark:text-gray-200 font-medium line-clamp-1 block max-w-[200px]">{item.title}</span>
+                          <span class="text-xs text-text-muted dark:text-gray-500 sm:hidden">{item.authorName}</span>
+                        </td>
+                        <td class="py-3 pr-4 hidden sm:table-cell">
+                          <span class="text-text-secondary dark:text-gray-400">{item.authorName}</span>
+                        </td>
+                        <td class="py-3 pr-4">
+                          {item.status === 'draft' && (
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Draft</span>
+                          )}
+                          {item.status === 'in_review' && (
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">In Review</span>
+                          )}
+                          {item.status === 'approved' && (
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Approved</span>
+                          )}
+                          {item.status === 'rejected' && (
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Rejected</span>
+                          )}
+                          {item.status === 'published' && (
+                            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">Published</span>
+                          )}
+                        </td>
+                        <td class="py-3 hidden md:table-cell">
+                          <span class="text-text-muted dark:text-gray-500">
+                            {new Date(item.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

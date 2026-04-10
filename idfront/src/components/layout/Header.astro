@@ -1,0 +1,70 @@
+---
+// Header.astro
+// Main navigation header: logo + Nav + right-side controls.
+// Uses extracted components: Nav, SearchBar, DarkModeToggle, MobileMenu.
+// Sticky with backdrop blur, responsive design.
+import Nav from './Nav.astro';
+import SearchBar from './SearchBar.astro';
+import DarkModeToggle from './DarkModeToggle.astro';
+import MobileMenu from './MobileMenu.astro';
+---
+
+<nav aria-label="Main navigation" class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border dark:bg-primary/95 dark:border-gray-800">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Left: Logo + Desktop Nav -->
+      <div class="flex items-center gap-8">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-2 group">
+          <div class="w-8 h-8 bg-accent rounded-sm flex items-center justify-center">
+            <span class="text-white font-bold text-sm font-editorial">M</span>
+          </div>
+          <span class="font-editorial text-xl font-bold tracking-wide text-primary dark:text-white group-hover:text-accent transition-colors">
+            MERIDIAN
+          </span>
+        </a>
+        <Nav />
+      </div>
+
+      <!-- Right: Search + Dark Mode + Subscribe + Mobile Toggle -->
+      <div class="flex items-center gap-2">
+        <SearchBar />
+        <DarkModeToggle />
+
+        <!-- Subscribe CTA -->
+        <a
+          href="/subscribe"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-sky-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+          </svg>
+          Subscribe
+        </a>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button
+          x-data="{ mobileMenu: false }"
+          @click="mobileMenu = !mobileMenu; $dispatch('toggle-mobile-menu', { open: mobileMenu })"
+          class="lg:hidden touch-target p-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors rounded-lg"
+          aria-label="Toggle menu"
+          aria-controls="mobile-menu-panel"
+          :aria-expanded="mobileMenu"
+        >
+          <svg x-show="!mobileMenu" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+          <svg x-show="mobileMenu" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Panel -->
+    <div id="mobile-menu-panel">
+      <MobileMenu />
+    </div>
+  </div>
+</nav>

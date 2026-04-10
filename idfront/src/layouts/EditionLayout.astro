@@ -1,0 +1,49 @@
+---
+// EditionLayout.astro
+// Layout for edition pages (weekly magazine editions).
+// Extends BaseLayout with edition-specific <head> slots:
+//   - JSON-LD CollectionPage structured data
+//   - Edition-specific OG meta
+
+import BaseLayout from './BaseLayout.astro';
+import type { Edition } from '@data/types';
+import { formatEditionDateRange, buildCollectionJsonLd } from '@utils/helpers';
+
+interface Props {
+  edition: Edition;
+}
+
+const { edition } = Astro.props;
+
+const editionTitle = `${edition.title} — Edition #${edition.number} | MERIDIAN`;
+const editionDesc = edition.subtitle
+  ? `${edition.subtitle}. Published ${formatEditionDateRange(edition.weekStart, edition.weekEnd)}.`
+  : `Edition #${edition.number} of MERIDIAN, published ${formatEditionDateRange(edition.weekStart, edition.weekEnd)}.`;
+const canonicalUrl = `/editions/${edition.slug}`;
+
+// JSON-LD for CollectionPage
+const jsonLd = buildCollectionJsonLd({
+  name: `${edition.title} — Edition #${edition.number} | MERIDIAN`,
+  description: editionDesc,
+  url: canonicalUrl,
+  image: edition.coverImage,
+  datePublished: edition.publishedAt,
+});
+---
+
+<BaseLayout
+  title={`${edition.title} — Edition #${edition.number} | MERIDIAN`}
+  description={editionDesc}
+  ogImage={edition.coverImage}
+  canonicalUrl={canonicalUrl}
+  contentType="website"
+>
+  <Fragment slot="head">
+    <!-- JSON-LD CollectionPage -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+
+  <div class="page-transition">
+    <slot />
+  </div>
+</BaseLayout>

@@ -1,0 +1,166 @@
+---
+// BaseLayout.astro
+// Root layout for the entire MERIDIAN magazine site.
+// Provides <head> with SEO, fonts, dark mode flash prevention,
+// Header, Footer, Alpine.js CDN, and the main <slot />.
+//
+// Child layouts (ArticleLayout, EditionLayout) extend this.
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  contentType?: string;
+}
+
+const {
+  title,
+  description = 'MERIDIAN — Your daily synthesized knowledge magazine for the curious mind. Covering world news, science, technology, environment, culture, and more.',
+  ogImage = '/og-default.png',
+  canonicalUrl,
+  contentType = 'website',
+} = Astro.props;
+
+const siteUrl = Astro.site?.toString() || 'https://meridian-mag.com';
+const fullCanonical = canonicalUrl ? `${siteUrl}${canonicalUrl}` : undefined;
+
+import Header from '@components/layout/Header.astro';
+import Footer from '@components/layout/Footer.astro';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)" />
+
+    <!-- Primary Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    {fullCanonical && <link rel="canonical" href={fullCanonical} />}
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={contentType} />
+    <meta property="og:url" content={fullCanonical || siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${siteUrl}${ogImage}`} />
+    <meta property="og:site_name" content="MERIDIAN" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={fullCanonical || siteUrl} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={`${siteUrl}${ogImage}`} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- RSS Feed Discovery -->
+    <link rel="alternate" type="application/rss+xml" title="MERIDIAN — Latest Articles" href={`${siteUrl}/rss.xml`} />
+
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Preconnect to Alpine.js CDN -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+
+    <!-- Google Fonts (async non-blocking) -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap"
+      />
+    </noscript>
+
+    <!-- Global Styles -->
+    <style is:global>
+      @import '../styles/global.css';
+    </style>
+
+    <!-- JSON-LD Organization Schema (site-wide) -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "MERIDIAN",
+      "alternateName": "Meridian Magazine",
+      "url": siteUrl,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${siteUrl}/logo.svg`,
+        "width": 200,
+        "height": 60,
+      },
+      "description": "A daily synthesized knowledge magazine for the curious mind. Covering world news, science, technology, environment, culture, sports, and health.",
+      "foundingDate": "2024",
+      "foundingLocation": {
+        "@type": "Place",
+        "name": "Global",
+      },
+      "sameAs": [
+        "https://twitter.com/meridianmag",
+        "https://instagram.com/meridianmag",
+        "https://youtube.com/@meridianmag",
+        "https://linkedin.com/company/meridianmag",
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "email": "support@meridian-mag.com",
+        "availableLanguage": ["English"],
+      },
+      "publishingPrinciples": `${siteUrl}/about`,
+    })} />
+
+    <!-- Slot for child layouts to inject additional <head> content (e.g. article JSON-LD) -->
+    <slot name="head" />
+
+    <!-- Dark Mode Initialization (prevent flash) -->
+    <script is:inline>
+      (function() {
+        const stored = localStorage.getItem('meridian-dark-mode');
+        if (stored === 'true' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+
+  <body class="min-h-screen bg-surface dark:bg-primary transition-colors duration-300">
+    <!-- Skip Navigation Link (Accessibility) -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:rounded-lg focus:font-semibold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+    >
+      Skip to main content
+    </a>
+    <Header />
+
+    <main id="main-content" tabindex="-1">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <!-- Alpine.js (loaded once, deferred) -->
+    <script defer integrity="sha384-7m4e0FEDrh8n0AW3xFxO3gOqb7gGFzFmr6zkylFfKKn6KZMwC/nbEzK3WtW/cfwx" crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+    <!-- x-cloak support -->
+    <style>
+      [x-cloak] { display: none !important; }
+    </style>
+  </body>
+</html>

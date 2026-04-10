@@ -1,0 +1,148 @@
+---
+/**
+ * Subscribe Page — /subscribe
+ * Subscription plans, pricing comparison, trust badges, and FAQ.
+ * Static page showcasing all available plans from site config.
+ */
+
+import BaseLayout from '@layouts/BaseLayout.astro';
+import SubscribeCTA from '@components/common/SubscribeCTA.astro';
+import PlanComparison from '@components/subscription/PlanComparison.astro';
+import FAQ from '@components/subscription/FAQ.astro';
+import NewsletterSignup from '@components/common/NewsletterSignup.astro';
+import { getSiteConfig } from '@data/service';
+
+// Get subscription plans from site config
+const { subscriptionPlans: plans } = getSiteConfig();
+
+// SEO
+const title = 'Subscribe to MERIDIAN — Unlock Premium Journalism';
+const description = 'Get full access to premium journalism, deep dives, and exclusive content. Choose from Free, Premium, and Premium + Print plans.';
+
+// FAQ items
+const faqItems = [
+  {
+    question: "What's included in the free plan?",
+    answer: 'The free plan gives you access to all public category articles including World News, Science & Tech, Environment, Sports, Culture, and Health. You also get daily edition summaries, full search capabilities, and our Sunday newsletter with the week\'s top stories.',
+  },
+  {
+    question: 'Can I cancel my subscription anytime?',
+    answer: 'Absolutely. You can cancel your subscription at any time from your account settings. If you cancel, you\'ll retain access to premium content until the end of your current billing period. No questions asked, no cancellation fees.',
+  },
+  {
+    question: 'How does the print edition work?',
+    answer: 'Premium + Print subscribers receive a beautifully printed weekly magazine delivered to their door. Each edition is printed on demand and shipped within 2–3 business days. You\'ll also receive PDF downloads of every edition for offline reading on any device.',
+  },
+  {
+    question: 'Is there a student discount?',
+    answer: 'Yes! We offer a 50% student discount on all premium plans. Simply verify your student status with a valid .edu email address or upload your student ID. The discount applies for the duration of your enrollment.',
+  },
+  {
+    question: 'What payment methods do you accept?',
+    answer: 'We accept all major credit and debit cards (Visa, Mastercard, American Express, Discover), PayPal, Apple Pay, and Google Pay. For annual subscriptions, we also support bank transfers and wire payments. All transactions are secured with 256-bit SSL encryption.',
+  },
+  {
+    question: 'Can I switch between plans?',
+    answer: 'Yes, you can upgrade or downgrade your plan at any time. When upgrading, you\'ll get immediate access to the new plan\'s features and be charged a prorated amount. When downgrading, the change takes effect at the start of your next billing cycle.',
+  },
+];
+---
+
+<BaseLayout title={title} description={description} canonicalUrl="/subscribe">
+  <div class="page-transition">
+
+    <!-- ==================== Hero Header ==================== -->
+    <section class="bg-gradient-to-br from-primary via-secondary to-primary py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <!-- Floating subscriber badge -->
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 border border-white/20 rounded-full text-white text-sm font-medium mb-6">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          250,000+ subscribers
+        </span>
+
+        <h1 class="font-editorial text-4xl sm:text-5xl font-bold text-white mb-4">
+          Unlock MERIDIAN
+        </h1>
+        <p class="text-gray-300 text-lg sm:text-xl max-w-2xl mx-auto">
+          Get full access to premium journalism, deep dives, and exclusive content.
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== Pricing Section ==================== -->
+    <section class="py-16 bg-white dark:bg-gray-950">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="font-editorial text-3xl sm:text-4xl font-bold mb-3">Choose Your Plan</h2>
+          <p class="text-text-secondary dark:text-gray-400 max-w-xl mx-auto">
+            From free exploration to full print subscriptions — find the right plan for you.
+          </p>
+        </div>
+
+        <!-- Pricing cards -->
+        <div class="max-w-6xl mx-auto">
+          <SubscribeCTA plans={plans} />
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Money-Back Guarantee ==================== -->
+    <section class="py-12 bg-surface dark:bg-gray-900 border-y border-border dark:border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+          <!-- Shield icon -->
+          <div class="flex-shrink-0 w-14 h-14 rounded-full bg-accent/10 dark:bg-accent/10 flex items-center justify-center">
+            <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <!-- Text -->
+          <div>
+            <h3 class="font-semibold text-lg text-text-primary dark:text-gray-100">
+              30-Day Money-Back Guarantee
+            </h3>
+            <p class="text-text-secondary dark:text-gray-400 text-sm mt-1">
+              Not satisfied? Get a full refund within 30 days, no questions asked.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Comparison Table ==================== -->
+    <section class="py-16 bg-white dark:bg-gray-950">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="font-editorial text-3xl sm:text-4xl font-bold text-center mb-3">
+          Compare Plans
+        </h2>
+        <p class="text-text-secondary dark:text-gray-400 text-center mb-10 max-w-xl mx-auto">
+          See exactly what's included in each plan at a glance.
+        </p>
+
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 overflow-hidden shadow-sm">
+          <PlanComparison plans={plans} />
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FAQ Section ==================== -->
+    <section class="py-16 bg-surface dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="font-editorial text-3xl sm:text-4xl font-bold text-center mb-3">
+          Frequently Asked Questions
+        </h2>
+        <p class="text-text-secondary dark:text-gray-400 text-center mb-10">
+          Everything you need to know about subscribing to MERIDIAN.
+        </p>
+
+        <FAQ items={faqItems} />
+      </div>
+    </section>
+
+    <!-- ==================== Newsletter CTA ==================== -->
+    <NewsletterSignup variant="section" />
+
+  </div>
+</BaseLayout>

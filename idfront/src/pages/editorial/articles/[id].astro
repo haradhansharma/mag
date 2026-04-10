@@ -1,0 +1,353 @@
+---
+// Edit Article — Pre-filled form with existing data
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/common/Breadcrumbs.astro';
+import { getAllAuthors, getAllCategories } from '@data/service';
+import { getEditorialQueue } from '@data/dummy/editorial';
+
+export function getStaticPaths() {
+  const queue = getEditorialQueue();
+  return queue.map((item) => ({
+    params: { id: item.id },
+    props: { item },
+  }));
+}
+
+const { item } = Astro.props;
+const authors = getAllAuthors();
+const categories = getAllCategories();
+---
+
+<BaseLayout
+  title={`Edit: ${item.title} — MERIDIAN`}
+  description={`Edit article: ${item.title}`}
+  canonicalUrl={`/editorial/articles/${item.id}`}
+>
+  <div class="bg-surface dark:bg-gray-950 min-h-screen" x-data="articleForm()" x-init="init()">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Breadcrumbs -->
+      <Breadcrumbs items={[
+        { label: 'Home', href: '/' },
+        { label: 'Editorial', href: '/editorial' },
+        { label: 'Articles', href: '/editorial/articles' },
+        { label: 'Edit' },
+      ]} />
+
+      <!-- Page Header -->
+      <div class="mt-6 mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 class="font-editorial text-3xl sm:text-4xl font-bold text-text-primary dark:text-gray-100">
+              Edit Article
+            </h1>
+            <p class="mt-2 text-text-secondary dark:text-gray-400">Editing existing article in the pipeline</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <a href="/editorial/articles" class="px-4 py-2.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-sm font-semibold rounded-xl transition-colors">
+              Cancel
+            </a>
+            <button @click="saveDraft()" class="px-4 py-2.5 bg-accent hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Layout: Main + Sidebar -->
+      <div class="grid lg:grid-cols-[1fr_300px] gap-8">
+        <!-- Main Form -->
+        <div class="space-y-6">
+          <!-- Title -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <label for="article-title" class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-2">Title</label>
+            <input
+              id="article-title"
+              type="text"
+              x-model="title"
+              @input="autoSlug()"
+              placeholder="Enter article title..."
+              class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-lg text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors font-editorial"
+            />
+          </div>
+
+          <!-- Subtitle -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <label for="article-subtitle" class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-2">Subtitle / Deck</label>
+            <input
+              id="article-subtitle"
+              type="text"
+              x-model="subtitle"
+              placeholder="Brief description or tagline..."
+              class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+            />
+          </div>
+
+          <!-- Author + Category Row -->
+          <div class="grid sm:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+              <label for="article-author" class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-2">Author</label>
+              <select
+                id="article-author"
+                x-model="authorName"
+                class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+              >
+                <option value="">Select author...</option>
+                <Fragment set:html={authors.map(a => `<option value="${a.name}">${a.name}</option>`).join('')} />
+              </select>
+            </div>
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+              <label for="article-category" class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-2">Category</label>
+              <select
+                id="article-category"
+                x-model="category"
+                class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+              >
+                <option value="">Select category...</option>
+                <Fragment set:html={categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('')} />
+              </select>
+            </div>
+          </div>
+
+          <!-- Cover Image -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <label for="article-cover" class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-2">Cover Image URL</label>
+            <input
+              id="article-cover"
+              type="text"
+              x-model="coverImage"
+              placeholder="https://example.com/image.jpg"
+              class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors font-mono"
+            />
+            <div x-show="coverImage" x-cloak class="mt-4">
+              <div class="relative rounded-xl overflow-hidden h-48 bg-surface dark:bg-gray-800">
+                <img :src="coverImage" alt="Cover preview" class="w-full h-full object-cover" @error="$el.style.display='none'" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <label for="article-content" class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-2">Content</label>
+            <textarea
+              id="article-content"
+              x-model="content"
+              @input="calcReadingTime()"
+              rows="14"
+              placeholder="Write your article content here..."
+              class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent resize-y min-h-[300px] font-mono leading-relaxed transition-colors"
+            ></textarea>
+            <div class="flex items-center gap-4 mt-2 text-xs text-text-muted dark:text-gray-500">
+              <span x-text="wordCount + ' words'"></span>
+              <span>•</span>
+              <span x-text="readingTime + ' min read'"></span>
+            </div>
+          </div>
+
+          <!-- Tags -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <label for="article-tags" class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-2">Tags / Keywords</label>
+            <input
+              id="article-tags"
+              type="text"
+              x-model="tags"
+              placeholder="Enter tags separated by commas..."
+              class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+            />
+          </div>
+
+          <!-- Access Level -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <label class="block text-sm font-semibold text-text-primary dark:text-gray-200 mb-3">Access Level</label>
+            <div class="flex items-center gap-6">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="access" value="public" x-model="accessLevel" class="w-4 h-4 text-accent border-gray-300 focus:ring-accent" />
+                <span class="text-sm text-text-secondary dark:text-gray-400">Public</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="access" value="premium" x-model="accessLevel" class="w-4 h-4 text-accent border-gray-300 focus:ring-accent" />
+                <span class="text-sm text-text-secondary dark:text-gray-400">Premium</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+          <!-- Publishing -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <h3 class="font-semibold text-text-primary dark:text-gray-200 text-sm mb-4">Publishing</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-text-muted dark:text-gray-500 mb-1">Status</label>
+                <div class="px-3 py-2 bg-surface dark:bg-gray-800 rounded-lg">
+                  <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" x-text="statusLabel(currentStatus)"></span>
+                </div>
+              </div>
+              <div>
+                <label for="article-publish-date" class="block text-xs font-medium text-text-muted dark:text-gray-500 mb-1">Publish Date</label>
+                <input
+                  id="article-publish-date"
+                  type="datetime-local"
+                  x-model="publishDate"
+                  class="w-full px-3 py-2 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg text-sm text-text-primary dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-text-muted dark:text-gray-500 mb-1">Slug</label>
+                <div class="px-3 py-2 bg-surface dark:bg-gray-800 rounded-lg text-sm text-text-muted dark:text-gray-500 font-mono truncate" x-text="slug || 'auto-generated-from-title'"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEO -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <h3 class="font-semibold text-text-primary dark:text-gray-200 text-sm mb-4">SEO</h3>
+            <div class="space-y-4">
+              <div>
+                <label for="article-meta-title" class="block text-xs font-medium text-text-muted dark:text-gray-500 mb-1">Meta Title</label>
+                <input
+                  id="article-meta-title"
+                  type="text"
+                  x-model="metaTitle"
+                  placeholder="SEO title..."
+                  class="w-full px-3 py-2 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent"
+                />
+                <p class="mt-1 text-xs text-text-muted dark:text-gray-500"><span x-text="metaTitle.length"></span>/60 characters</p>
+              </div>
+              <div>
+                <label for="article-meta-desc" class="block text-xs font-medium text-text-muted dark:text-gray-500 mb-1">Meta Description</label>
+                <textarea
+                  id="article-meta-desc"
+                  x-model="metaDescription"
+                  rows="3"
+                  placeholder="SEO description..."
+                  class="w-full px-3 py-2 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent resize-none"
+                ></textarea>
+                <p class="mt-1 text-xs text-text-muted dark:text-gray-500"><span x-text="metaDescription.length"></span>/160 characters</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reading Info -->
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6">
+            <h3 class="font-semibold text-text-primary dark:text-gray-200 text-sm mb-4">Reading Info</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-text-muted dark:text-gray-500">Word Count</span>
+                <span class="text-sm font-semibold text-text-primary dark:text-gray-200" x-text="wordCount"></span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-text-muted dark:text-gray-500">Reading Time</span>
+                <span class="text-sm font-semibold text-text-primary dark:text-gray-200" x-text="readingTime + ' min'"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div
+      x-show="toast.show"
+      x-cloak
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="opacity-0 translate-y-4"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      x-transition:leave="transition ease-in duration-200"
+      x-transition:leave-start="opacity-100 translate-y-0"
+      x-transition:leave-end="opacity-0 translate-y-4"
+      class="fixed bottom-6 right-6 z-50"
+    >
+      <div :class="toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'" class="px-5 py-3 rounded-xl shadow-lg text-white text-sm font-medium flex items-center gap-2">
+        <svg x-show="toast.type === 'success'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        <span x-text="toast.message"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pass existing data to Alpine.js -->
+  <Fragment set:html={`
+    <script is:inline>
+      window.__meridian_edit_article = ${JSON.stringify(item)};
+    </script>
+  `} />
+
+  <script is:inline>
+    function articleForm() {
+      return {
+        title: '',
+        subtitle: '',
+        authorName: '',
+        category: '',
+        coverImage: '',
+        content: '',
+        tags: '',
+        accessLevel: 'public',
+        currentStatus: 'draft',
+        publishDate: '',
+        slug: '',
+        metaTitle: '',
+        metaDescription: '',
+        wordCount: 0,
+        readingTime: 0,
+        toast: { show: false, message: '', type: 'success' },
+        toastTimer: null,
+
+        init() {
+          const data = window.__meridian_edit_article;
+          this.title = data.title || '';
+          this.subtitle = '';
+          this.authorName = data.authorName || '';
+          this.category = data.category || '';
+          this.coverImage = data.coverImage || '';
+          this.content = data.excerpt || '';
+          this.tags = '';
+          this.accessLevel = 'public';
+          this.currentStatus = data.status || 'draft';
+          this.slug = data.articleId || '';
+          this.metaTitle = data.title || '';
+          this.metaDescription = data.excerpt || '';
+          this.wordCount = data.wordCount || 0;
+          this.readingTime = data.readingTime || 0;
+
+          const now = new Date(data.updatedAt || data.submittedAt);
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          this.publishDate = now.toISOString().slice(0, 16);
+        },
+
+        autoSlug() {
+          this.slug = this.title
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/&/g, '-and-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+        },
+
+        calcReadingTime() {
+          const plainText = this.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          this.wordCount = plainText.split(/\s+/).filter(Boolean).length;
+          this.readingTime = Math.max(1, Math.ceil(this.wordCount / 238));
+        },
+
+        saveDraft() {
+          this.showToast('Changes saved successfully!', 'success');
+        },
+
+        statusLabel(status) {
+          const map = { draft: 'Draft', in_review: 'In Review', approved: 'Approved', rejected: 'Rejected', published: 'Published' };
+          return map[status] || status;
+        },
+
+        showToast(message, type = 'success') {
+          if (this.toastTimer) clearTimeout(this.toastTimer);
+          this.toast = { show: true, message, type };
+          this.toastTimer = setTimeout(() => { this.toast.show = false; }, 3000);
+        },
+      };
+    }
+  </script>
+</BaseLayout>

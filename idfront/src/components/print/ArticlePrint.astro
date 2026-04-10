@@ -1,0 +1,131 @@
+---
+// ArticlePrint.astro
+// Print-optimized article layout component.
+// Images are constrained (85% width, centered) to look like a print page
+// both on screen preview and when printed.
+
+import type { Article } from '@data/types';
+import { formatDate, getCategoryColorClasses } from '@utils/helpers';
+
+interface Props {
+  article: Article;
+  pageNumber?: number;
+  isTwoColumn?: boolean;
+  isFeature?: boolean;
+}
+
+const {
+  article,
+  pageNumber,
+  isTwoColumn = false,
+  isFeature = false,
+} = Astro.props;
+
+const publishedDate = formatDate(article.publishedAt, 'long');
+---
+
+<article class="print-article page-break-avoid">
+  <!-- Category color bar -->
+  <div class={`print-category-bar-${article.category?.color || 'blue'}`}></div>
+
+  <!-- Article Header -->
+  <div class="print-article-header">
+    <!-- Category label -->
+    <div class="print-label">
+      {article.category?.name || 'Article'}
+      {article.access === 'premium' && (
+        <span class="print-premium-badge" style="margin-left: 8pt;">Premium</span>
+      )}
+    </div>
+
+    <!-- Title -->
+    <h1 class="print-article-title">
+      {article.title}
+    </h1>
+
+    <!-- Subtitle -->
+    {article.subtitle && (
+      <p class="print-article-subtitle">
+        {article.subtitle}
+      </p>
+    )}
+
+    <!-- Meta row -->
+    <div class="print-article-meta">
+      {article.author && (
+        <>
+          <span style="color: #0B1220; font-weight: 600;">{article.author.name}</span>
+          <span class="print-article-meta-separator">|</span>
+        </>
+      )}
+      <span>{publishedDate}</span>
+      <span class="print-article-meta-separator">|</span>
+      <span>{article.readingTime} min read</span>
+      <span class="print-article-meta-separator">|</span>
+      <span>{article.wordCount.toLocaleString()} words</span>
+      {pageNumber && (
+        <>
+          <span class="print-article-meta-separator">|</span>
+          <span style="color: #0EA5E9; font-weight: 600;">Page {pageNumber}</span>
+        </>
+      )}
+    </div>
+  </div>
+
+  <!-- Cover Image — constrained, centered, with border -->
+  {article.coverImage && (
+    <div class="print-image-wrapper" style="text-align: center;">
+      <img
+        src={article.coverImage}
+        alt={article.title}
+        style="
+          width: 85%;
+          max-height: 140mm;
+          object-fit: cover;
+          display: block;
+          margin: 0 auto;
+          border: 0.5pt solid #e2e8f0;
+        "
+        loading="lazy"
+      />
+      {article.coverCaption && (
+        <p class="print-caption-below" style="text-align: center; max-width: 85%; margin: 4pt auto 0 auto;">
+          {article.coverCaption}
+        </p>
+      )}
+    </div>
+  )}
+
+  <!-- Article Body -->
+  <div
+    class:list={[
+      'print-article-body',
+      { 'print-two-col': isTwoColumn },
+    ]}
+    set:html={article.content}
+  />
+
+  <!-- Pull Quote (extracted from blockquotes) -->
+  {isFeature && (
+    <div class="print-pull-quote">
+      <span set:html={article.excerpt} />
+    </div>
+  )}
+
+  <!-- Footer divider + author attribution -->
+  <hr class="print-divider" />
+  <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Inter', sans-serif; font-size: 8pt; color: #94a3b8;">
+    <div>
+      {article.author && (
+        <span>Written by <strong style="color: #475569;">{article.author.name}</strong></span>
+      )}
+      {article.author?.role && (
+        <span style="margin-left: 4pt; color: #cbd5e1;">— {article.author.role}</span>
+      )}
+    </div>
+    <div>
+      <span style="color: #0EA5E9;">MERIDIAN</span>
+      <span style="margin-left: 4pt;">Edition</span>
+    </div>
+  </div>
+</article>

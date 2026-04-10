@@ -1,0 +1,69 @@
+---
+// ArticleLayout.astro
+// Layout for individual article pages.
+// Extends BaseLayout with article-specific <head> slots:
+//   - JSON-LD NewsArticle structured data
+//   - Article-specific OG meta
+//   - Published/modified time meta
+//   - Author meta
+// Uses BaseLayout's named "head" slot for JSON-LD injection.
+
+import BaseLayout from './BaseLayout.astro';
+import type { Article } from '@data/types';
+import { buildArticleJsonLd, countWords } from '@utils/helpers';
+
+interface Props {
+  article: Article;
+}
+
+const { article } = Astro.props;
+const articleWordCount = countWords(article.content);
+const jsonLd = buildArticleJsonLd({
+  title: article.seo.title || article.title,
+  excerpt: article.excerpt,
+  coverImage: article.coverImage,
+  publishedAt: article.publishedAt,
+  updatedAt: article.updatedAt,
+  authorName: article.author?.name || 'MERIDIAN Staff',
+  authorUrl: article.author?.slug ? `/authors/${article.author.slug}` : undefined,
+  slug: article.slug,
+  category: article.category?.name,
+  keywords: article.seo?.keywords,
+  wordCount: articleWordCount,
+});
+
+const articleTitle = article.seo?.title || `${article.title} — MERIDIAN`;
+const articleDesc = article.excerpt;
+const canonicalUrl = `/articles/${article.slug}`;
+---
+
+<BaseLayout
+  title={articleTitle}
+  description={articleDesc}
+  ogImage={article.coverImage}
+  canonicalUrl={canonicalUrl}
+  contentType="article"
+>
+  <Fragment slot="head">
+    <!-- JSON-LD NewsArticle -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+    <!-- Article-specific meta -->
+    <meta property="article:published_time" content={article.publishedAt} />
+    {article.updatedAt && (
+      <meta property="article:modified_time" content={article.updatedAt} />
+    )}
+    <meta property="article:author" content={article.author?.name || 'MERIDIAN Staff'} />
+    <meta property="article:section" content={article.category?.name || ''} />
+    {article.seo.keywords?.map(keyword => (
+      <meta property="article:tag" content={keyword} />
+    ))}
+
+    <!-- Open Graph article type -->
+    <meta property="og:type" content="article" />
+  </Fragment>
+
+  <div class="page-transition">
+    <slot />
+  </div>
+</BaseLayout>

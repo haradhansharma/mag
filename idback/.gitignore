@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.python-version
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+logs/
+*/logs/
+
+# Django migrations
+*/migrations/__pycache__/
+*/migrations/*.py[cod]
+
+# Environments
+venv/
+ENV/
+env/
+.venv/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Docker
+*.tar
+*.log
+
+# PyCharm
+.idea/
+
+# Static files
+staticfiles/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# Ignore secrets
+.env
+
+# Node / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

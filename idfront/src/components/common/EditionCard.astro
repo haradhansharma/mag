@@ -1,0 +1,77 @@
+---
+/**
+ * EditionCard.astro
+ * Edition preview card with 3D perspective hover effect.
+ *
+ * Props:
+ *   edition: Edition
+ *   size?: 'sm' | 'md' | 'lg'  — controls the card's max-width (default: 'md')
+ *
+ * Uses .edition-card and .edition-card-inner CSS classes from global.css
+ * for the 3D perspective transform on hover.
+ */
+
+import type { Edition } from '@data/types';
+import { formatEditionDateRange } from '@utils/helpers';
+
+interface Props {
+  edition: Edition;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const { edition, size = 'md' } = Astro.props;
+const dateRange = formatEditionDateRange(edition.weekStart, edition.weekEnd);
+
+const sizeClasses = {
+  sm: 'max-w-[200px]',
+  md: 'max-w-[260px]',
+  lg: 'max-w-[320px]',
+};
+---
+
+<div class={`edition-card mx-auto ${sizeClasses[size]} bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 overflow-hidden`}>
+  <div class="edition-card-inner">
+    <a href={`/editions/${edition.slug}`} class="block relative aspect-[3/4] overflow-hidden shadow-lg">
+      <img
+        src={edition.coverImage}
+        alt={edition.title}
+        class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+        fetchpriority={size === 'lg' ? 'high' : 'auto'}
+        width={size === 'lg' ? 640 : size === 'md' ? 520 : 400}
+        height={size === 'lg' ? 853 : size === 'md' ? 693 : 533}
+        loading={size === 'lg' ? 'eager' : 'lazy'}
+      />
+      <!-- Bottom gradient -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+      <!-- Edition badge & brand -->
+      <div class="absolute bottom-3 left-3 right-3">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="px-2 py-0.5 bg-accent-warm text-white text-[10px] font-bold rounded">
+            #{edition.number}
+          </span>
+          {edition.printReady && (
+            <span class="px-2 py-0.5 bg-green-600/90 text-white text-[10px] font-bold rounded flex items-center gap-1">
+              <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+              Print
+            </span>
+          )}
+        </div>
+        <p class="text-white/90 font-editorial text-xs font-bold tracking-wide uppercase">MERIDIAN</p>
+      </div>
+    </a>
+  </div>
+  <!-- Card info section -->
+  <div class="p-3">
+    <a href={`/editions/${edition.slug}`} class="block group/title">
+      <h3 class="font-editorial text-sm font-bold text-text-primary dark:text-gray-100 group-hover/title:text-accent transition-colors line-clamp-1">
+        {edition.title}
+      </h3>
+    </a>
+    <p class="text-[11px] text-text-muted dark:text-gray-500 mt-0.5 line-clamp-1">
+      {edition.subtitle}
+    </p>
+    <p class="text-[10px] text-text-muted dark:text-gray-600 text-center mt-2">
+      {dateRange}
+    </p>
+  </div>
+</div>

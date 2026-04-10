@@ -1,0 +1,22 @@
+# MERIDIAN Magazine — robots.txt
+# https://meridian-mag.com
+
+# Allow crawling of public content
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /print/order
+Disallow: /print/preview
+
+# Disallow premium category pages
+Disallow: /categories/business-economy
+Disallow: /categories/opinion-analysis
+Disallow: /categories/deep-dives
+Disallow: /categories/future-forward
+Disallow: /categories/lifestyle-travel
+
+# Crawl delay (be gentle with our server)
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://meridian-mag.com/sitemap-index.xml

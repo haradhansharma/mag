@@ -1,0 +1,114 @@
+---
+/**
+ * NewsletterSignup.astro
+ * Email signup section with two display variants.
+ *
+ * Props:
+ *   variant?: 'section' | 'inline' (default 'section')
+ *
+ * 'section' — Full-width gradient banner for homepage / article footers.
+ * 'inline'  — Compact card-style for footer, sidebar, or between-content slots.
+ */
+
+interface Props {
+  variant?: 'section' | 'inline';
+}
+
+const { variant = 'section' } = Astro.props;
+---
+
+{variant === 'section' ? (
+  <section class="py-16 bg-gradient-to-br from-primary to-secondary no-print">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center" x-data="{ email: '', submitted: false, error: '', loading: false }">
+      <h2 class="font-editorial text-3xl sm:text-4xl font-bold text-white mb-3">
+        Stay Informed, Stay Ahead
+      </h2>
+      <p class="text-gray-300 text-lg mb-8">
+        Get the week&rsquo;s most important stories delivered to your inbox every Sunday morning.
+      </p>
+      <form @submit.prevent="
+        error = '';
+        if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error = 'Please enter a valid email address.'; return; }
+        loading = true;
+        setTimeout(() => { loading = false; submitted = true; email = ''; }, 1200);
+      " class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+        <label for="newsletter-email-section" class="sr-only">Email address</label>
+        <input
+          type="email"
+          id="newsletter-email-section"
+          name="email"
+          x-model="email"
+          required
+          placeholder="Enter your email address"
+          class="flex-1 px-5 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+        />
+        <button
+          :disabled="loading"
+          class="px-6 py-3 bg-accent hover:bg-sky-600 disabled:bg-accent/50 text-white font-semibold rounded-lg transition-colors whitespace-nowrap shadow-lg"
+          type="submit"
+        >
+          <span x-show="!loading">Subscribe Free</span>
+          <span x-show="loading" x-cloak>Subscribing...</span>
+        </button>
+      </form>
+      <!-- Error message -->
+      <p x-show="error" x-cloak x-text="error" class="text-red-300 text-sm mt-3" role="alert"></p>
+      <!-- Success message -->
+      <div x-show="submitted" x-cloak class="mt-4">
+        <p class="text-green-300 text-sm font-medium flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+          Welcome aboard! Check your inbox for a confirmation email.
+        </p>
+      </div>
+      <p x-show="!submitted" class="text-gray-500 text-xs mt-4">
+        Join 250,000+ readers. No spam, unsubscribe anytime.
+      </p>
+    </div>
+  </section>
+) : (
+  <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-border dark:border-gray-800 no-print" x-data="{ email: '', submitted: false, error: '', loading: false }">
+    <h3 class="font-editorial text-xl font-bold mb-2">
+      Stay Informed, Stay Ahead
+    </h3>
+    <p class="text-text-muted dark:text-gray-500 text-sm mb-5">
+      Get the week&rsquo;s most important stories delivered to your inbox every Sunday morning.
+    </p>
+    <form @submit.prevent="
+      error = '';
+      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error = 'Please enter a valid email address.'; return; }
+      loading = true;
+      setTimeout(() => { loading = false; submitted = true; email = ''; }, 1200);
+    " class="flex flex-col gap-3">
+      <label for="newsletter-email-inline" class="sr-only">Email address</label>
+      <input
+        type="email"
+        id="newsletter-email-inline"
+        name="email"
+        x-model="email"
+        required
+        placeholder="Enter your email address"
+        class="w-full px-4 py-2.5 rounded-lg bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 text-text-primary dark:text-gray-100 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
+      />
+      <button
+        :disabled="loading"
+        class="w-full py-2.5 bg-accent hover:bg-sky-600 disabled:bg-accent/50 text-white font-semibold rounded-lg transition-colors text-sm"
+        type="submit"
+      >
+        <span x-show="!loading">Subscribe Free</span>
+        <span x-show="loading" x-cloak>Subscribing...</span>
+      </button>
+    </form>
+    <!-- Error message -->
+    <p x-show="error" x-cloak x-text="error" class="text-red-500 text-xs mt-2" role="alert"></p>
+    <!-- Success message -->
+    <div x-show="submitted" x-cloak class="mt-3">
+      <p class="text-green-600 dark:text-green-400 text-xs font-medium flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+        Welcome aboard! Check your inbox for confirmation.
+      </p>
+    </div>
+    <p x-show="!submitted" class="text-text-muted dark:text-gray-500 text-xs mt-3">
+      Join 250,000+ readers. No spam, unsubscribe anytime.
+    </p>
+  </div>
+)}

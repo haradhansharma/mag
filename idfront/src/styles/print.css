@@ -1,0 +1,452 @@
+/* ============================================================
+   MERIDIAN Magazine — Print Stylesheet
+   ============================================================
+   Optimized for A4 210mm × 297mm output at 300dpi.
+   Uses CMYK-safe colors, serif typography, and page breaks.
+   ============================================================ */
+
+/* ---- Page Setup ---- */
+@page {
+  size: A4 portrait;
+  margin: 20mm 18mm 25mm 18mm;
+
+  @top-center {
+    content: "MERIDIAN";
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 8pt;
+    color: #666;
+    letter-spacing: 2pt;
+  }
+
+  @bottom-center {
+    content: counter(page);
+    font-family: 'Inter', sans-serif;
+    font-size: 9pt;
+    color: #888;
+  }
+}
+
+@page :first {
+  margin-top: 0;
+  @top-center { content: none; }
+}
+
+@page cover {
+  margin: 0;
+  @top-center { content: none; }
+  @bottom-center { content: none; }
+}
+
+/* ---- Reset for Print ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 10.5pt;
+  line-height: 1.65;
+  color: #1a1a1a;
+  background: white;
+}
+
+/* ---- Typography ---- */
+.print-heading-display {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 28pt;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #0B1220;
+  letter-spacing: -0.02em;
+}
+
+.print-heading-1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18pt;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0B1220;
+  margin-top: 24pt;
+  margin-bottom: 10pt;
+  padding-bottom: 6pt;
+  border-bottom: 1.5pt solid #0EA5E9;
+}
+
+.print-heading-2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 14pt;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #1E3A5F;
+  margin-top: 18pt;
+  margin-bottom: 8pt;
+}
+
+.print-heading-3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 11.5pt;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #334155;
+  margin-top: 14pt;
+  margin-bottom: 6pt;
+}
+
+.print-body {
+  font-family: 'Inter', 'Helvetica Neue', sans-serif;
+  font-size: 10pt;
+  line-height: 1.7;
+  color: #1a1a1a;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.print-caption {
+  font-family: 'Inter', sans-serif;
+  font-size: 8pt;
+  font-style: italic;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 4pt;
+  text-align: left;
+}
+
+.print-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 7.5pt;
+  font-weight: 600;
+  letter-spacing: 1.5pt;
+  text-transform: uppercase;
+  color: #0EA5E9;
+}
+
+/* ---- Cover Styles ---- */
+.print-cover {
+  width: 210mm;
+  height: 297mm;
+  position: relative;
+  overflow: hidden;
+  background: #0B1220;
+  color: white;
+  page: cover;
+}
+
+.print-cover-nameplate {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 36pt;
+  font-weight: 700;
+  letter-spacing: 6pt;
+  text-transform: uppercase;
+  color: white;
+}
+
+.print-cover-edition {
+  font-family: 'Inter', sans-serif;
+  font-size: 10pt;
+  font-weight: 500;
+  letter-spacing: 3pt;
+  text-transform: uppercase;
+  color: #0EA5E9;
+}
+
+.print-cover-headline {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 32pt;
+  font-weight: 700;
+  line-height: 1.1;
+  color: white;
+  margin-top: 16pt;
+}
+
+.print-cover-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 11pt;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+  margin-top: 8pt;
+}
+
+.print-cover-date {
+  font-family: 'Inter', sans-serif;
+  font-size: 9pt;
+  letter-spacing: 2pt;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ---- TOC Styles ---- */
+.print-toc {
+  padding: 0;
+  list-style: none;
+}
+
+.print-toc-item {
+  display: flex;
+  align-items: baseline;
+  padding: 8pt 0;
+  border-bottom: 0.5pt dotted #cbd5e1;
+  page-break-inside: avoid;
+}
+
+.print-toc-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 11pt;
+  font-weight: 600;
+  color: #0B1220;
+  flex: 1;
+}
+
+.print-toc-author {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5pt;
+  color: #64748b;
+  margin-left: 12pt;
+  white-space: nowrap;
+}
+
+.print-toc-page {
+  font-family: 'Inter', sans-serif;
+  font-size: 9pt;
+  font-weight: 600;
+  color: #0EA5E9;
+  margin-left: 12pt;
+  min-width: 24pt;
+  text-align: right;
+}
+
+/* ---- Article Print ---- */
+.print-article-header {
+  margin-bottom: 16pt;
+  padding-bottom: 12pt;
+  border-bottom: 2pt solid #0B1220;
+}
+
+.print-article-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22pt;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0B1220;
+  margin-bottom: 8pt;
+}
+
+.print-article-subtitle {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 13pt;
+  font-style: italic;
+  color: #475569;
+  line-height: 1.4;
+  margin-bottom: 10pt;
+}
+
+.print-article-meta {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5pt;
+  color: #64748b;
+  display: flex;
+  gap: 12pt;
+  flex-wrap: wrap;
+}
+
+.print-article-meta-separator {
+  color: #cbd5e1;
+}
+
+.print-article-body {
+  font-family: 'Inter', 'Helvetica Neue', sans-serif;
+  font-size: 10pt;
+  line-height: 1.75;
+  color: #1a1a1a;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.print-article-body p {
+  margin-bottom: 10pt;
+  text-indent: 0;
+}
+
+.print-article-body p:first-of-type::first-letter {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 38pt;
+  float: left;
+  line-height: 0.85;
+  padding-right: 4pt;
+  padding-top: 4pt;
+  color: #0B1220;
+  font-weight: 700;
+}
+
+.print-article-body h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 14pt;
+  font-weight: 700;
+  color: #0B1220;
+  margin-top: 18pt;
+  margin-bottom: 8pt;
+  text-align: left;
+}
+
+.print-article-body h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 11.5pt;
+  font-weight: 600;
+  color: #1E3A5F;
+  margin-top: 14pt;
+  margin-bottom: 6pt;
+  text-align: left;
+}
+
+.print-article-body blockquote {
+  border-left: 3pt solid #0EA5E9;
+  padding-left: 14pt;
+  margin: 14pt 0;
+  font-style: italic;
+  color: #334155;
+  font-size: 10.5pt;
+}
+
+.print-article-body ul,
+.print-article-body ol {
+  margin: 10pt 0;
+  padding-left: 20pt;
+}
+
+.print-article-body li {
+  margin-bottom: 4pt;
+}
+
+.print-article-body img {
+  max-width: 100%;
+  height: auto;
+  margin: 12pt 0;
+}
+
+/* ---- Two-Column Feature Layout ---- */
+.print-two-col {
+  column-count: 2;
+  column-gap: 18pt;
+  column-rule: 0.5pt solid #e2e8f0;
+}
+
+.print-two-col p:first-of-type::first-letter {
+  font-size: 44pt;
+}
+
+/* ---- Pull Quote ---- */
+.print-pull-quote {
+  border-top: 2pt solid #0EA5E9;
+  border-bottom: 2pt solid #0EA5E9;
+  padding: 10pt 0;
+  margin: 16pt 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 14pt;
+  font-style: italic;
+  color: #1E3A5F;
+  text-align: center;
+  line-height: 1.4;
+  page-break-inside: avoid;
+}
+
+/* ---- Category Color Bar ---- */
+.print-category-bar {
+  width: 40pt;
+  height: 3pt;
+  margin-bottom: 8pt;
+}
+
+.print-category-bar-blue { background: #2563eb; }
+.print-category-bar-purple { background: #9333ea; }
+.print-category-bar-green { background: #059669; }
+.print-category-bar-rose { background: #e11d48; }
+.print-category-bar-amber { background: #d97706; }
+.print-category-bar-teal { background: #0d9488; }
+.print-category-bar-indigo { background: #4f46e5; }
+.print-category-bar-orange { background: #ea580c; }
+.print-category-bar-cyan { background: #0891b2; }
+.print-category-bar-pink { background: #db2777; }
+.print-category-bar-emerald { background: #047857; }
+
+/* ---- Page Break Utilities ---- */
+.page-break-before { page-break-before: always; }
+.page-break-after { page-break-after: always; }
+.page-break-avoid { page-break-inside: avoid; }
+
+/* ---- Footer / Colophon ---- */
+.print-colophon {
+  font-family: 'Inter', sans-serif;
+  font-size: 7pt;
+  color: #94a3b8;
+  text-align: center;
+  padding-top: 12pt;
+  border-top: 0.5pt solid #e2e8f0;
+}
+
+/* ---- Premium Lock Indicator ---- */
+.print-premium-badge {
+  display: inline-block;
+  font-family: 'Inter', sans-serif;
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 1pt;
+  text-transform: uppercase;
+  color: #d97706;
+  border: 0.5pt solid #d97706;
+  padding: 1pt 5pt;
+  border-radius: 2pt;
+}
+
+/* ---- Divider ---- */
+.print-divider {
+  border: none;
+  height: 0.5pt;
+  background: #e2e8f0;
+  margin: 16pt 0;
+}
+
+.print-divider-accent {
+  border: none;
+  height: 1.5pt;
+  background: #0EA5E9;
+  margin: 16pt 0;
+}
+
+/* ---- Sidebar ---- */
+.print-sidebar {
+  font-size: 9pt;
+  line-height: 1.6;
+  color: #475569;
+  border-left: 2pt solid #0EA5E9;
+  padding-left: 12pt;
+  margin: 12pt 0;
+}
+
+/* ---- Image Caption in Print ---- */
+.print-image-wrapper {
+  margin: 14pt 0;
+  page-break-inside: avoid;
+}
+
+.print-image-full {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.print-caption-below {
+  font-family: 'Inter', sans-serif;
+  font-size: 8pt;
+  font-style: italic;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 4pt;
+}

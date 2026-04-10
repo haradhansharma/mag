@@ -1,0 +1,307 @@
+---
+// PrintLayout.astro
+// Layout for print editions. Wraps content with print.css,
+// Table of Contents, page numbers, and proper print media queries.
+// Used by print/[week]-[year].astro for weekly print previews.
+
+import type { Edition } from '@data/types';
+import { formatEditionDateRange } from '@utils/helpers';
+import '../styles/print.css';
+
+interface Props {
+  title: string;
+  edition: Edition;
+  description?: string;
+}
+
+const {
+  title,
+  edition,
+  description = `MERIDIAN Magazine — Edition #${edition.number}`,
+} = Astro.props;
+
+const dateRange = formatEditionDateRange(edition.weekStart, edition.weekEnd);
+const publicArticles = edition.articles?.filter(a => a.access === 'public') || [];
+const premiumArticles = edition.articles?.filter(a => a.access === 'premium') || [];
+const allArticles = edition.articles || [];
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Print previews should not be indexed by search engines -->
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Inline print-specific overrides for screen preview -->
+    <style>
+      /* Screen preview: add shadow to simulate printed page */
+      @media screen {
+        body {
+          background: #e2e8f0;
+          padding: 20px 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .print-page {
+          background: white;
+          width: 210mm;
+          min-height: 297mm;
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+          margin-bottom: 24px;
+          position: relative;
+        }
+
+        .print-page-cover {
+          width: 210mm;
+          height: 297mm;
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+          margin-bottom: 24px;
+          overflow: hidden;
+        }
+
+        .print-toolbar {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background: #0B1220;
+          color: white;
+          padding: 10px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          font-family: 'Inter', sans-serif;
+          font-size: 13px;
+          margin-bottom: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .print-toolbar button {
+          background: #0EA5E9;
+          color: white;
+          border: none;
+          padding: 6px 16px;
+          border-radius: 6px;
+          font-size: 13px;
+          cursor: pointer;
+          font-family: 'Inter', sans-serif;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .print-toolbar button:hover {
+          background: #0284C7;
+        }
+      }
+
+      @media print {
+        .print-toolbar {
+          display: none !important;
+        }
+        .print-page,
+        .print-page-cover {
+          box-shadow: none;
+          margin-bottom: 0;
+          width: 100%;
+        }
+        body {
+          background: white;
+          padding: 0;
+        }
+      }
+    </style>
+
+    <slot name="head" />
+  </head>
+
+  <body>
+    <!-- Print / Download Toolbar (screen only) -->
+    <div class="print-toolbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-family: 'Playfair Display', serif; font-weight: 700; font-size: 16px; letter-spacing: 1pt;">MERIDIAN</span>
+        <span style="color: #94a3b8;">|</span>
+        <span style="color: #94a3b8;">Edition #{edition.number} — {dateRange}</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="window.print()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+        <button onclick="downloadPDF()" style="background: #1E3A5F;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Cover Page -->
+    <div class="print-page-cover">
+      <slot name="cover" />
+    </div>
+
+    <!-- Table of Contents Page -->
+    <div class="print-page" style="padding: 20mm 18mm 25mm 18mm;">
+      <div class="print-label" style="margin-bottom: 6pt;">Table of Contents</div>
+      <h2 class="print-heading-display" style="font-size: 24pt; margin-bottom: 4pt;">
+        Edition #{edition.number}
+      </h2>
+      <p style="font-family: 'Playfair Display', serif; font-style: italic; font-size: 13pt; color: #475569; margin-bottom: 4pt;">
+        {edition.title}
+      </p>
+      <p style="font-family: 'Inter', sans-serif; font-size: 9pt; color: #94a3b8; margin-bottom: 18pt;">
+        {dateRange}
+      </p>
+
+      <hr class="print-divider-accent" />
+
+      <!-- Public Articles Section -->
+      {publicArticles.length > 0 && (
+        <div style="margin-bottom: 16pt;">
+          <div class="print-label" style="margin-bottom: 10pt; color: #059669;">Public Articles</div>
+          <ul class="print-toc">
+            {publicArticles.map((article, i) => (
+              <li class="print-toc-item">
+                <span class="print-toc-title">{article.title}</span>
+                {article.author && (
+                  <span class="print-toc-author">{article.author.name}</span>
+                )}
+                <span class="print-toc-page">{i + 3}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <!-- Premium Articles Section -->
+      {premiumArticles.length > 0 && (
+        <div style="margin-bottom: 16pt;">
+          <div class="print-label" style="margin-bottom: 10pt; color: #d97706;">Premium Articles</div>
+          <ul class="print-toc">
+            {premiumArticles.map((article, i) => (
+              <li class="print-toc-item">
+                <span class="print-toc-title">
+                  {article.title}
+                  <span class="print-premium-badge" style="margin-left: 6pt;">Premium</span>
+                </span>
+                {article.author && (
+                  <span class="print-toc-author">{article.author.name}</span>
+                )}
+                <span class="print-toc-page">{i + 3 + publicArticles.length}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <hr class="print-divider" />
+
+      <!-- Edition Summary -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12pt; margin-top: 16pt; text-align: center;">
+        <div>
+          <div style="font-family: 'Playfair Display', serif; font-size: 22pt; font-weight: 700; color: #0B1220;">
+            {allArticles.length}
+          </div>
+          <div style="font-family: 'Inter', sans-serif; font-size: 8pt; color: #94a3b8; text-transform: uppercase; letter-spacing: 1pt;">
+            Articles
+          </div>
+        </div>
+        <div>
+          <div style="font-family: 'Playfair Display', serif; font-size: 22pt; font-weight: 700; color: #0B1220;">
+            #{edition.number}
+          </div>
+          <div style="font-family: 'Inter', sans-serif; font-size: 8pt; color: #94a3b8; text-transform: uppercase; letter-spacing: 1pt;">
+            Edition
+          </div>
+        </div>
+        <div>
+          <div style="font-family: 'Playfair Display', serif; font-size: 22pt; font-weight: 700; color: #0B1220;">
+            {new Set(allArticles.map(a => a.categoryId)).size}
+          </div>
+          <div style="font-family: 'Inter', sans-serif; font-size: 8pt; color: #94a3b8; text-transform: uppercase; letter-spacing: 1pt;">
+            Categories
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Pages -->
+    <slot name="articles" />
+
+    <!-- Colophon / Back Page -->
+    <div class="print-page" style="padding: 20mm 18mm 25mm 18mm; display: flex; flex-direction: column; justify-content: space-between; min-height: 297mm;">
+      <div>
+        <div style="text-align: center; padding-top: 40pt;">
+          <div style="font-family: 'Playfair Display', serif; font-size: 28pt; font-weight: 700; color: #0B1220; letter-spacing: 3pt;">
+            MERIDIAN
+          </div>
+          <div style="font-family: 'Inter', sans-serif; font-size: 9pt; letter-spacing: 3pt; text-transform: uppercase; color: #94a3b8; margin-top: 6pt;">
+            Your World, Synthesized
+          </div>
+          <div style="width: 40pt; height: 1.5pt; background: #0EA5E9; margin: 16pt auto;"></div>
+        </div>
+
+        <!-- About -->
+        <div class="print-body" style="text-align: center; max-width: 380pt; margin: 0 auto; color: #64748b; font-size: 9pt; line-height: 1.7;">
+          <p>
+            MERIDIAN is a weekly synthesized knowledge magazine covering world news,
+            science, technology, environment, culture, and more. Each edition curates
+            the most important stories and presents them with depth, context, and clarity.
+          </p>
+          <p style="margin-top: 8pt;">
+            Published weekly. Available in print and digital formats.
+            Visit <span style="color: #0EA5E9;">meridian-mag.com</span> to subscribe.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <hr class="print-divider" />
+        <div class="print-colophon">
+          <p>© {new Date().getFullYear()} MERIDIAN Magazine. All rights reserved.</p>
+          <p style="margin-top: 3pt;">
+            Edition #{edition.number} • {dateRange} • Printed on FSC-certified paper
+          </p>
+          <p style="margin-top: 3pt;">
+            ISSN 0000-0000 • meridian-mag.com
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <!-- Download PDF: opens print dialog with "Save as PDF" hint -->
+  <script is:inline>
+    function downloadPDF() {
+      // Show a brief tip, then open the browser print dialog
+      // where the user can choose "Save as PDF" as the destination
+      const tip = document.createElement('div');
+      tip.textContent = '💡 In the print dialog, select "Save as PDF" as the destination printer';
+      tip.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0B1220;color:white;padding:10px 20px;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;z-index:9999;opacity:0;transition:opacity 0.3s;';
+      document.body.appendChild(tip);
+      requestAnimationFrame(() => tip.style.opacity = '1');
+      setTimeout(() => {
+        tip.style.opacity = '0';
+        setTimeout(() => tip.remove(), 300);
+      }, 4000);
+      window.print();
+    }
+  </script>
+</html>

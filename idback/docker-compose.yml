@@ -1,0 +1,106 @@
+services:
+  mbackend:
+    build: ./backend
+    container_name: mbackend
+    command: uvicorn config.asgi:application --host 0.0.0.0 --port 8085 --reload    
+    volumes:
+      - ./backend:/app
+      - m_static_vol:/app/staticfiles
+      - m_media_vol:/app/media
+    ports:
+      - "8085:8085"
+    env_file:
+      - .env
+    depends_on:
+      - mdb
+      - mredis
+    networks:
+      - meridian_net
+
+  mdb:
+    image: postgres:16-alpine
+    container_name: mpostgres_db
+    environment:
+      POSTGRES_DB: ${MDB_NAME}
+      POSTGRES_USER: ${MDB_USER}
+      POSTGRES_PASSWORD: ${MDB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MDB_USER} -d ${MDB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - m_postgres_data:/var/lib/postgresql/data/
+    # ports:
+    #   - "5437:5432"
+    restart: on-failure
+    networks:
+      - meridian_net
+
+  mredis:
+    image: redis:7-alpine
+    container_name: mredis
+    volumes:
+      - mredis_data:/data
+    command: >
+      redis-server 
+      --appendonly yes 
+      --maxclients 10000 
+      --timeout 300 
+      --tcp-keepalive 60
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    # ports:
+    #   - "6384:6379"
+    restart: on-failure
+    networks:
+      - meridian_net
+
+  mcelery:
+    build: ./backend
+    container_name: mcelery
+    command: celery -A config worker -l INFO -Q default,websocket,celery
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      mredis:
+        condition: service_healthy
+      mdb:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - meridian_net  
+
+  mcelerybeat:
+    build: ./backend
+    container_name: mcelerybeat
+    command: celery -A config beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env  
+    depends_on:
+      mdb:
+        condition: service_healthy
+      mredis:
+        condition: service_healthy
+      mbackend:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - meridian_net
+
+volumes:
+  m_postgres_data:
+  m_static_vol:
+  m_media_vol:
+  mredis_data:
+
+networks:
+  meridian_net:
+    driver: bridge

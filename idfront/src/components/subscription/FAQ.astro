@@ -1,0 +1,98 @@
+---
+/**
+ * FAQ.astro
+ * Subscription-specific FAQ with Alpine.js accordion.
+ *
+ * Props:
+ *   items: Array<{ question: string; answer: string }>
+ *   maxOpen?: number (default 1 — accordion mode)
+ *
+ * Features:
+ *   - Numbered indicators ("01", "02", etc.)
+ *   - Decorative left border on open items
+ *   - Plus/minus toggle icon with rotation
+ *   - Slide-down transition animation
+ *   - max-w-3xl container
+ */
+
+interface Props {
+  items: Array<{ question: string; answer: string }>;
+  maxOpen?: number;
+}
+
+const { items, maxOpen = 1 } = Astro.props;
+---
+
+<div class="max-w-3xl mx-auto" x-data={`{ openFaq: null }`}>
+  <div class="space-y-3">
+    {items.map((item, index) => {
+      const num = String(index + 1).padStart(2, '0');
+      return (
+        <div
+          class:list={[
+            'rounded-xl border overflow-hidden transition-all duration-300',
+            'bg-white dark:bg-gray-900 border-border dark:border-gray-800',
+          ]}
+          :class={`openFaq === ${index} ? 'border-accent/50 dark:border-accent/30 shadow-md' : ''`}
+        >
+          <!-- Question button -->
+          <button
+            @click={`openFaq = openFaq === ${index} ? null : ${index}`}
+            class="w-full flex items-center gap-4 p-5 text-left hover:bg-surface dark:hover:bg-gray-800/50 transition-colors"
+            aria-expanded="false"
+          >
+            {/* Number indicator */}
+            <span
+              class:list={[
+                'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold transition-colors duration-300',
+                'bg-surface dark:bg-gray-800 text-text-muted dark:text-gray-500',
+              ]}
+              :class={`openFaq === ${index} ? 'bg-accent text-white' : ''`}
+            >
+              {num}
+            </span>
+
+            {/* Question text */}
+            <span class="flex-1 font-semibold text-sm pr-4 text-text-primary dark:text-gray-100">
+              {item.question}
+            </span>
+
+            {/* Plus/minus icon */}
+            <span class="flex-shrink-0 w-8 h-8 rounded-full border border-border dark:border-gray-700 flex items-center justify-center transition-all duration-300"
+              :class={`openFaq === ${index} ? 'bg-accent border-accent rotate-45' : 'bg-white dark:bg-gray-800'`}
+            >
+              <svg
+                class="w-4 h-4 transition-colors duration-300"
+                :class={`openFaq === ${index} ? 'text-white' : 'text-text-muted dark:text-gray-500'`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12M6 12h12" />
+              </svg>
+            </span>
+          </button>
+
+          <!-- Answer panel -->
+          <div
+            x-show={`openFaq === ${index}`}
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 -translate-y-2"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 -translate-y-2"
+            x-cloak
+            class="pl-[76px] pr-5 pb-5"
+          >
+            <div class="border-l-2 border-accent pl-4">
+              <p class="text-sm text-text-secondary dark:text-gray-400 leading-relaxed">
+                {item.answer}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>

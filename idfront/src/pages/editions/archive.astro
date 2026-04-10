@@ -1,0 +1,456 @@
+---
+// ============================================================
+// MERIDIAN Magazine — Editions Archive Page (Enhanced)
+// ============================================================
+// Phase 9: Edition Archive
+// Features:
+//   - Grid view (EditionCards) and List view (detailed rows)
+//   - Alpine.js view toggle (grid/list)
+//   - Year and month filter dropdowns
+//   - Search/filter by edition title
+//   - Dynamic result count
+//   - Pagination (server-side)
+//   - Responsive design with dark mode support
+// ============================================================
+
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/common/Breadcrumbs.astro';
+import EditionCard from '@components/common/EditionCard.astro';
+import Pagination from '@components/common/Pagination.astro';
+import NewsletterSignup from '@components/common/NewsletterSignup.astro';
+import { getAllEditions } from '@data/service';
+import { formatEditionDateRange, formatDate, paginate } from '@utils/helpers';
+
+// --- Fetch all published editions ---
+const allEditions = getAllEditions();
+const editionCount = allEditions.length;
+
+// --- Extract unique years and months for filter dropdowns ---
+const years = [...new Set(allEditions.map(e => new Date(e.publishedAt).getFullYear()))].sort((a, b) => b - a);
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+const months = monthNames.map((name, i) => ({ value: i + 1, label: name }));
+
+// --- Build editions data for Alpine.js client-side filtering ---
+const editionsForAlpine = allEditions.map(e => ({
+  number: e.number,
+  title: e.title,
+  subtitle: e.subtitle,
+  slug: e.slug,
+  coverImage: e.coverImage,
+  dateRange: formatEditionDateRange(e.weekStart, e.weekEnd),
+  publishedAt: e.publishedAt,
+  year: new Date(e.publishedAt).getFullYear(),
+  month: new Date(e.publishedAt).getMonth() + 1,
+  articleCount: e.articleCount,
+  printReady: e.printReady,
+}));
+
+// --- Breadcrumb items ---
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Editions', href: '/editions/archive' },
+  { label: 'Archive' },
+];
+---
+
+<BaseLayout
+  title="Edition Archive — MERIDIAN"
+  description="Browse our complete archive of weekly editions from MERIDIAN magazine. Filter by year, month, or search by title."
+  canonicalUrl="/editions/archive"
+>
+  <div class="page-transition">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Breadcrumbs -->
+      <div class="pt-6 pb-4">
+        <Breadcrumbs items={breadcrumbs} />
+      </div>
+
+      <!-- ====== Page Header ====== -->
+      <section class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 class="font-editorial text-3xl sm:text-4xl font-bold mb-3">
+              Edition Archive
+            </h1>
+            <p class="text-text-secondary dark:text-gray-400 text-lg">
+              Browse our complete archive of weekly editions
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- Edition count badge -->
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-alt dark:bg-gray-800 border border-border dark:border-gray-700">
+              <svg class="w-4 h-4 text-accent dark:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span class="text-sm font-semibold text-text-secondary dark:text-gray-300"
+                x-data x-text="`${filteredCount} Edition${filteredCount !== 1 ? 's' : ''}`">
+                {editionCount} Editions
+              </span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== Filter & View Toolbar ====== -->
+      {/* Editions JSON data for Alpine.js — embedded at build time as inline script */}
+      <Fragment set:html={`<script>window.__meridian_editions = ${JSON.stringify(editionsForAlpine)};</script>`} />
+
+      <div
+        x-data="{
+          editions: window.__meridian_editions || [],
+          view: 'grid',
+          searchQuery: '',
+          filterYear: '',
+          filterMonth: '',
+          filteredCount: window.__meridian_editions ? window.__meridian_editions.length : 0,
+          get filteredEditions() {
+            let result = [...this.editions];
+            if (this.filterYear) {
+              result = result.filter(e => e.year === parseInt(this.filterYear));
+            }
+            if (this.filterMonth) {
+              result = result.filter(e => e.month === parseInt(this.filterMonth));
+            }
+            if (this.searchQuery.trim()) {
+              const q = this.searchQuery.toLowerCase();
+              result = result.filter(e =>
+                e.title.toLowerCase().includes(q) ||
+                e.subtitle.toLowerCase().includes(q) ||
+                ('edition ' + e.number).includes(q)
+              );
+            }
+            this.filteredCount = result.length;
+            return result;
+          }
+        }"
+      >
+
+        <!-- Toolbar Row -->
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 p-4 bg-surface-alt dark:bg-gray-800/50 rounded-xl border border-border dark:border-gray-700">
+
+          <!-- Left: Search + Filters -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <!-- Search Input -->
+            <div class="relative">
+              <label for="archive-search" class="sr-only">Search editions</label>
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted dark:text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                id="archive-search"
+                x-model="searchQuery"
+                placeholder="Search editions..."
+                class="w-full sm:w-56 pl-9 pr-4 py-2 text-sm rounded-lg bg-white dark:bg-gray-900 border border-border dark:border-gray-600 text-text-primary dark:text-gray-200 placeholder:text-text-muted dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+              />
+            </div>
+
+            <!-- Year Filter -->
+            <div class="relative">
+              <label for="filter-year" class="sr-only">Filter by year</label>
+              <select
+                id="filter-year"
+                x-model="filterYear"
+                class="appearance-none w-full sm:w-auto pl-3 pr-8 py-2 text-sm rounded-lg bg-white dark:bg-gray-900 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors cursor-pointer"
+              >
+                <option value="">All Years</option>
+                {years.map(year => (
+                  <option value={year}>{year}</option>
+                ))}
+              </select>
+              <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted dark:text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <!-- Month Filter -->
+            <div class="relative">
+              <label for="filter-month" class="sr-only">Filter by month</label>
+              <select
+                id="filter-month"
+                x-model="filterMonth"
+                class="appearance-none w-full sm:w-auto pl-3 pr-8 py-2 text-sm rounded-lg bg-white dark:bg-gray-900 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors cursor-pointer"
+              >
+                <option value="">All Months</option>
+                {months.map(m => (
+                  <option value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted dark:text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <!-- Clear Filters Button -->
+            <button
+              x-show="filterYear || filterMonth || searchQuery"
+              x-cloak
+              @click="filterYear = ''; filterMonth = ''; searchQuery = '';"
+              class="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-accent hover:bg-accent/10 rounded-lg transition-colors whitespace-nowrap"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear
+            </button>
+          </div>
+
+          <!-- Right: View Toggle -->
+          <div class="flex items-center gap-1 p-1 bg-white dark:bg-gray-900 rounded-lg border border-border dark:border-gray-700">
+            <!-- Grid View Button -->
+            <button
+              @click="view = 'grid'"
+              :class="view === 'grid' ? 'bg-accent text-white shadow-sm' : 'text-text-muted dark:text-gray-400 hover:text-text-secondary dark:hover:text-gray-300'"
+              class="p-2 rounded-md transition-colors"
+              :aria-pressed="view === 'grid'"
+              aria-label="Grid view"
+            >
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <!-- List View Button -->
+            <button
+              @click="view = 'list'"
+              :class="view === 'list' ? 'bg-accent text-white shadow-sm' : 'text-text-muted dark:text-gray-400 hover:text-text-secondary dark:hover:text-gray-300'"
+              class="p-2 rounded-md transition-colors"
+              :aria-pressed="view === 'list'"
+              aria-label="List view"
+            >
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ====== Grid View ====== -->
+        <div x-show="view === 'grid'" x-transition.opacity.duration.200ms>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 justify-items-center">
+          <template x-for="edition in filteredEditions" :key="edition.number">
+            <div class="edition-card w-full max-w-[240px] bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 overflow-hidden">
+              <div class="edition-card-inner">
+                <a :href="'/editions/' + edition.slug" class="block relative aspect-[3/4] overflow-hidden shadow-lg">
+                  <img
+                    :src="edition.coverImage"
+                    :alt="edition.title"
+                    class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    width="480"
+                    height="640"
+                    loading="lazy"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                  <div class="absolute bottom-3 left-3 right-3">
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <span class="px-2 py-0.5 bg-accent-warm text-white text-[10px] font-bold rounded" x-text="'#' + edition.number"></span>
+                      <span x-show="edition.printReady" class="px-2 py-0.5 bg-green-600/90 text-white text-[10px] font-bold rounded flex items-center gap-1">
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+                        Print
+                      </span>
+                    </div>
+                    <p class="text-white/90 font-editorial text-[11px] font-bold tracking-wide uppercase">MERIDIAN</p>
+                  </div>
+                </a>
+              </div>
+              <div class="p-3">
+                <a :href="'/editions/' + edition.slug" class="block group/title">
+                  <h3 class="font-editorial text-sm font-bold text-text-primary dark:text-gray-100 group-hover/title:text-accent transition-colors line-clamp-1" x-text="edition.title"></h3>
+                </a>
+                <p class="text-[11px] text-text-muted dark:text-gray-500 mt-0.5 line-clamp-1" x-text="edition.subtitle"></p>
+                <div class="flex items-center justify-between mt-2">
+                  <span class="text-[10px] text-text-muted dark:text-gray-600" x-text="edition.dateRange"></span>
+                  <span class="inline-flex items-center gap-1 text-[10px] text-text-muted dark:text-gray-600">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <span x-text="edition.articleCount"></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </template>
+          </div>
+        </div>
+
+        <!-- ====== List View ====== -->
+        <div x-show="view === 'list'" x-cloak x-transition.opacity.duration.200ms>
+          <!-- Table Header -->
+          <div class="hidden lg:grid lg:grid-cols-12 gap-4 px-5 py-3 mb-2 text-xs font-bold text-text-muted dark:text-gray-500 uppercase tracking-wider">
+            <div class="col-span-1">No.</div>
+            <div class="col-span-1">Cover</div>
+            <div class="col-span-3">Title</div>
+            <div class="col-span-3">Subtitle</div>
+            <div class="col-span-2">Date Range</div>
+            <div class="col-span-1">Articles</div>
+            <div class="col-span-1 text-center">Status</div>
+          </div>
+
+          <div class="space-y-3">
+            <template x-for="edition in filteredEditions" :key="edition.number">
+              <a
+                :href="'/editions/' + edition.slug"
+                class="group block bg-white dark:bg-gray-900 rounded-xl border border-border dark:border-gray-800 hover:border-accent/30 dark:hover:border-accent/30 hover:shadow-lg transition-all duration-200 overflow-hidden"
+              >
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-4 items-center p-4 lg:p-5">
+                  <!-- Edition Number -->
+                  <div class="lg:col-span-1 flex items-center">
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-accent-warm/10 dark:bg-accent-warm/20 text-accent-warm font-bold text-sm" x-text="'#' + edition.number"></span>
+                  </div>
+
+                  <!-- Cover Thumbnail -->
+                  <div class="lg:col-span-1 mt-3 lg:mt-0 flex items-center">
+                    <div class="w-12 h-16 rounded-lg overflow-hidden shadow-md flex-shrink-0">
+                      <img :src="edition.coverImage" :alt="edition.title" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" loading="lazy" />
+                    </div>
+                  </div>
+
+                  <!-- Title -->
+                  <div class="lg:col-span-3 mt-3 lg:mt-0">
+                    <h3 class="font-editorial text-base sm:text-lg font-bold text-text-primary dark:text-gray-100 group-hover:text-accent transition-colors" x-text="edition.title"></h3>
+                  </div>
+
+                  <!-- Subtitle -->
+                  <div class="lg:col-span-3 mt-1 lg:mt-0">
+                    <p class="text-sm text-text-muted dark:text-gray-400 line-clamp-2" x-text="edition.subtitle"></p>
+                  </div>
+
+                  <!-- Date Range -->
+                  <div class="lg:col-span-2 mt-2 lg:mt-0">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-text-muted dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span class="text-sm text-text-secondary dark:text-gray-400" x-text="edition.dateRange"></span>
+                    </div>
+                  </div>
+
+                  <!-- Article Count -->
+                  <div class="lg:col-span-1 mt-2 lg:mt-0">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-text-muted dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span class="text-sm font-semibold text-text-secondary dark:text-gray-300" x-text="edition.articleCount"></span>
+                    </div>
+                  </div>
+
+                  <!-- Status Badges -->
+                  <div class="lg:col-span-1 mt-2 lg:mt-0 flex items-center lg:justify-center gap-2">
+                    <!-- Print Ready Badge -->
+                    <span
+                      x-show="edition.printReady"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                    >
+                      <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+                      Print
+                    </span>
+                    <!-- Arrow -->
+                    <svg class="w-4 h-4 text-text-muted dark:text-gray-500 group-hover:text-accent group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </a>
+            </template>
+          </div>
+        </div>
+
+        <!-- ====== No Results State ====== -->
+        <div
+          x-show="filteredCount === 0"
+          x-cloak
+          x-transition.opacity.duration.200ms
+          class="text-center py-20"
+        >
+          <svg class="w-16 h-16 mx-auto text-text-muted/30 dark:text-gray-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 class="font-editorial text-xl font-bold text-text-secondary dark:text-gray-400 mb-2">
+            No editions found
+          </h3>
+          <p class="text-text-muted dark:text-gray-500 mb-4">
+            Try adjusting your filters or search query.
+          </p>
+          <button
+            @click="filterYear = ''; filterMonth = ''; searchQuery = '';"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Reset All Filters
+          </button>
+        </div>
+
+        <!-- ====== Stats Footer ====== -->
+        <div
+          x-show="filteredCount > 0"
+          class="mt-8 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-border dark:border-gray-800"
+        >
+          <!-- Summary Stats -->
+          <div class="flex items-center gap-6 text-sm text-text-muted dark:text-gray-500">
+            <div class="flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span><strong class="text-text-secondary dark:text-gray-300" x-text="filteredCount"></strong> editions</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+              <span><strong class="text-text-secondary dark:text-gray-300">2026</strong></span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span><strong class="text-text-secondary dark:text-gray-300">26</strong> total articles</span>
+            </div>
+          </div>
+
+          <!-- Active Filter Tags -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <template x-if="filterYear">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold">
+                <span x-text="filterYear"></span>
+                <button @click="filterYear = ''" class="hover:bg-accent/20 rounded-full p-0.5 transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </span>
+            </template>
+            <template x-if="filterMonth">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold">
+                <span x-text="new Date(2026, filterMonth - 1).toLocaleString('en-US', { month: 'long' })"></span>
+                <button @click="filterMonth = ''" class="hover:bg-accent/20 rounded-full p-0.5 transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </span>
+            </template>
+            <template x-if="searchQuery.trim()">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold max-w-[180px]">
+                <span class="truncate" x-text="searchQuery"></span>
+                <button @click="searchQuery = ''" class="hover:bg-accent/20 rounded-full p-0.5 transition-colors flex-shrink-0">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </span>
+            </template>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ====== Newsletter Signup ====== -->
+      <div class="mt-8">
+        <NewsletterSignup variant="section" />
+      </div>
+
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+</style>

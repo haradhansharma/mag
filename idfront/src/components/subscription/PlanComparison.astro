@@ -1,0 +1,150 @@
+---
+/**
+ * PlanComparison.astro
+ * Detailed feature comparison table for subscription plans.
+ *
+ * Props:
+ *   plans: SubscriptionPlan[]
+ *
+ * Renders a responsive side-by-side comparison grid.
+ * Uses green checkmark for included features, gray X for not included.
+ * Highlights the Premium column with an accent background.
+ */
+
+import type { SubscriptionPlan } from '@data/types';
+
+interface Props {
+  plans: SubscriptionPlan[];
+}
+
+const { plans } = Astro.props;
+
+/**
+ * Feature comparison matrix.
+ * Each feature has a name and which plan types include it.
+ */
+const comparisonFeatures = [
+  { name: 'Public category articles', free: true, premium: true, print: true },
+  { name: 'Premium category articles', free: false, premium: true, print: true },
+  { name: 'Deep dives & long-form', free: false, premium: true, print: true },
+  { name: 'Expert opinion & analysis', free: false, premium: true, print: true },
+  { name: 'Ad-free reading', free: false, premium: true, print: true },
+  { name: 'Early access features', free: false, premium: true, print: true },
+  { name: 'Bookmark & save', free: false, premium: true, print: true },
+  { name: 'Weekly print edition', free: false, premium: false, print: true },
+  { name: 'PDF downloads', free: false, premium: false, print: true },
+  { name: 'Collectible cover art', free: false, premium: false, print: true },
+  { name: 'Annual digest book', free: false, premium: false, print: false, annual: true },
+  { name: 'Priority support', free: false, premium: false, print: false, annual: true },
+];
+
+/**
+ * Get the plan names for the header (main 3 plans: Free, Premium, Premium+Print).
+ * Filter to the core plans for comparison.
+ */
+const displayPlans = plans.filter(p => ['plan-free', 'plan-premium', 'plan-print'].includes(p.id));
+---
+
+<div class="overflow-x-auto">
+  <table class="w-full min-w-[640px]">
+    <!-- Table header -->
+    <thead>
+      <tr class="bg-surface-alt dark:bg-gray-800/50 border-b-2 border-border dark:border-gray-700">
+        <th class="p-4 text-left text-sm font-semibold text-text-secondary dark:text-gray-400 w-[40%]">
+          Features
+        </th>
+        {displayPlans.map((plan) => (
+          <th
+            class:list={[
+              'p-4 text-center text-sm font-semibold w-[20%]',
+              plan.highlighted
+                ? 'text-accent bg-accent/5 dark:bg-accent/5'
+                : 'text-text-primary dark:text-gray-200',
+            ]}
+          >
+            {plan.name}
+          </th>
+        ))}
+      </tr>
+    </thead>
+
+    <!-- Table body -->
+    <tbody>
+      {comparisonFeatures.map((feature, i) => (
+        <tr
+          class:list={[
+            'border-b border-border dark:border-gray-800 last:border-b-0',
+            i % 2 === 1 && 'bg-surface/50 dark:bg-gray-900/50',
+          ]}
+        >
+          <!-- Feature name -->
+          <td class="p-4 text-sm text-text-secondary dark:text-gray-400">
+            {feature.name}
+          </td>
+
+          <!-- Free column -->
+          <td class="p-4 text-center">
+            {feature.free ? (
+              <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg class="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+          </td>
+
+          <!-- Premium column (highlighted) -->
+          <td class:list={[
+            'p-4 text-center',
+            'bg-accent/[0.03] dark:bg-accent/[0.05]',
+          ]}>
+            {feature.premium ? (
+              <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg class="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+          </td>
+
+          <!-- Premium + Print column -->
+          <td class="p-4 text-center">
+            {feature.print ? (
+              <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg class="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+          </td>
+        </tr>
+      ))}
+
+      <!-- Price row -->
+      <tr class="border-t-2 border-border dark:border-gray-700 bg-surface-alt dark:bg-gray-800/50">
+        <td class="p-4 text-sm font-semibold text-text-primary dark:text-gray-100">
+          Starting at
+        </td>
+        {displayPlans.map((plan) => (
+          <td
+            class:list={[
+              'p-4 text-center font-bold text-text-primary dark:text-gray-100',
+              plan.highlighted && 'bg-accent/5 dark:bg-accent/5',
+            ]}
+          >
+            {plan.price === 0 ? 'Free' : `$${plan.price}`}
+            <span class="text-xs font-normal text-text-muted dark:text-gray-500">
+              /{plan.interval}
+            </span>
+          </td>
+        ))}
+      </tr>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,40 @@
+# Ignore Python cache and artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Ignore git and local files
+.git
+.gitignore
+
+# Ignore local environment variables and secrets
+.env
+*.env
+
+# Ignore editor folders
+.vscode/
+.idea/
+
+# Ignore system files
+.DS_Store
+
+# Ignore local build artifacts
+build/
+dist/
+
+# Ignore Django static and media files
+staticfiles/
+media/
+
+# Ignore tests and coverage outputs
+.coverage
+coverage.xml
+htmlcov/
+pytest_cache/

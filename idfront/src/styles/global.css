@@ -1,0 +1,237 @@
+@import './fonts.css';
+@import "tailwindcss";
+
+/* ========================
+   Dark Mode: Class-based
+   (Tailwind 4 defaults to prefers-color-scheme;
+    this enables .dark class on <html>)
+   ======================== */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ========================
+   Custom Theme (Tailwind 4)
+   ======================== */
+@theme {
+  --color-primary: #0B1220;
+  --color-secondary: #1E3A5F;
+  --color-accent: #0EA5E9;
+  --color-accent-dark: #0284C7;
+  --color-accent-light: #38BDF8;
+  --color-accent-warm: #F59E0B;
+  --color-accent-warm-dark: #D97706;
+  --color-accent-warm-light: #FCD34D;
+  --color-surface: #F8FAFC;
+  --color-surface-alt: #F1F5F9;
+  --color-surface-dark: #0F172A;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-border: #E2E8F0;
+
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-editorial: 'Playfair Display', Georgia, serif;
+
+  --animate-slide-down: slideDown 0.2s ease-out;
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-scale-in: scaleIn 0.2s ease-out;
+
+  @keyframes slideDown {
+    0% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+}
+
+/* ========================
+   Base Layer
+   ======================== */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    @apply bg-surface text-text-primary;
+  }
+
+  .dark body {
+    @apply bg-primary text-gray-100;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+  }
+
+  ::selection {
+    @apply bg-accent/20 text-primary;
+  }
+
+  .dark ::selection {
+    @apply bg-accent/30 text-white;
+  }
+
+  /* ========================
+     Focus Styles (Accessibility)
+     ======================== */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+    border-radius: 2px;
+  }
+
+  /* Reduce focus ring for small interactive elements */
+  button:focus-visible,
+  a:focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+
+  /* Remove default outline, rely on focus-visible */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ========================
+     Reduced Motion (Accessibility)
+     ======================== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* ========================
+     Scrollbar (Cross-browser)
+     ======================== */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #94A3B8 #F1F5F9;
+  }
+  .dark * {
+    scrollbar-color: #475569 #1E293B;
+  }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-track { background: #F1F5F9; }
+  *::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 4px; }
+  *::-webkit-scrollbar-thumb:hover { background: #64748B; }
+  .dark *::-webkit-scrollbar-track { background: #1E293B; }
+  .dark *::-webkit-scrollbar-thumb { background: #475569; }
+}
+
+/* ========================
+   Component Layer
+   ======================== */
+@layer components {
+  .font-editorial {
+    font-family: var(--font-editorial);
+  }
+
+  /* Trending horizontal scroll */
+  .trending-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #94A3B8 #F1F5F9;
+  }
+  .trending-scroll::-webkit-scrollbar { height: 4px; }
+  .trending-scroll::-webkit-scrollbar-track { background: #F1F5F9; border-radius: 2px; }
+  .trending-scroll::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 2px; }
+  .dark .trending-scroll { scrollbar-color: #475569 #1E293B; }
+  .dark .trending-scroll::-webkit-scrollbar-track { background: #1E293B; }
+
+  /* Premium content gradient mask */
+  .fade-bottom {
+    mask-image: linear-gradient(to bottom, black 0%, black 50%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 50%, transparent 100%);
+  }
+
+  /* Premium glow */
+  .premium-glow {
+    background: linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(14,165,233,0.05) 100%);
+  }
+  .dark .premium-glow {
+    background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(14,165,233,0.08) 100%);
+  }
+
+  /* Card hover */
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  }
+  .dark .card-hover:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Edition card 3D */
+  .edition-card { perspective: 800px; }
+  .edition-card-inner { transition: transform 0.6s ease; transform-style: preserve-3d; }
+  .edition-card:hover .edition-card-inner { transform: rotateY(-5deg) rotateX(2deg); }
+
+  /* Line clamps */
+  .line-clamp-1 {
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .line-clamp-2 {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  /* ========================
+     Touch Target Accessibility
+     (Minimum 44x44px for mobile)
+     ======================== */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+}
+
+/* ========================
+   Utility Layer
+   ======================== */
+@layer utilities {
+  .page-transition { animation: fadeIn 0.3s ease-out; }
+  .animate-slide-down { animation: slideDown 0.2s ease-out; }
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2;
+  }
+  .dark .focus-ring { @apply focus:ring-offset-primary; }
+}
+
+/* Premium shimmer */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.premium-shimmer {
+  background: linear-gradient(110deg, rgba(245,158,11,0.05) 0%, rgba(245,158,11,0.15) 20%, rgba(245,158,11,0.05) 40%);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ========================
+   Print Styles
+   ======================== */
+@media print {
+  nav, footer, .no-print, [x-data] { display: none !important; }
+  body { background: white !important; color: black !important; }
+  a { text-decoration: none !important; color: inherit !important; }
+  img { max-width: 100% !important; }
+}

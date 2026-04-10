@@ -1,0 +1,204 @@
+---
+/**
+ * Detailed Pricing Page — /subscribe/pricing
+ * Deep-dive standalone pricing page with individual PricingCards,
+ * full PlanComparison table, FAQ, and newsletter signup.
+ */
+
+import BaseLayout from '@layouts/BaseLayout.astro';
+import PricingCard from '@components/subscription/PricingCard.astro';
+import PlanComparison from '@components/subscription/PlanComparison.astro';
+import FAQ from '@components/subscription/FAQ.astro';
+import NewsletterSignup from '@components/common/NewsletterSignup.astro';
+import { getSiteConfig } from '@data/service';
+
+// Get subscription plans from site config
+const { subscriptionPlans: plans } = getSiteConfig();
+
+// The 3 main plans for individual card display
+const mainPlans = plans.filter(p => ['plan-free', 'plan-premium', 'plan-print'].includes(p.id));
+
+// Annual savings text
+const annualSavings = 'Save $20 per year';
+
+// SEO
+const title = 'Simple, Transparent Pricing — MERIDIAN Magazine';
+const description = 'Compare MERIDIAN subscription plans side by side. Free, Premium, and Premium + Print options with a 30-day money-back guarantee.';
+
+// FAQ items (subscription-specific)
+const faqItems = [
+  {
+    question: 'How does the 30-day free trial work?',
+    answer: 'When you subscribe to any paid plan, you get a full 30 days to explore all premium features risk-free. If you decide it\'s not for you, simply cancel before the trial ends and you won\'t be charged a penny. No credit card holds, no hidden fees.',
+  },
+  {
+    question: 'What happens if I upgrade mid-cycle?',
+    answer: 'Upgrades take effect immediately. You\'ll be charged a prorated amount for the remainder of your current billing cycle, then the full new plan rate on your next renewal date. All your saved articles, bookmarks, and preferences carry over seamlessly.',
+  },
+  {
+    question: 'Can I gift a subscription to someone?',
+    answer: 'Absolutely! During checkout, select "Gift Subscription" and enter the recipient\'s email address. They\'ll receive a beautiful digital card on the date you choose. Gift subscriptions are available for all plan types and durations.',
+  },
+  {
+    question: 'Is my payment information secure?',
+    answer: 'We use industry-standard 256-bit SSL encryption for all transactions. Your payment details are processed by Stripe and never stored on our servers. We\'re PCI DSS Level 1 compliant — the highest level of payment security certification.',
+  },
+  {
+    question: 'Do you offer team or institutional plans?',
+    answer: 'Yes! We offer special pricing for teams of 5+ and institutional licenses for schools, libraries, and corporations. Contact our sales team at subscriptions@meridian-mag.com for a custom quote tailored to your organization\'s needs.',
+  },
+  {
+    question: 'What if I already have a free account?',
+    answer: 'No problem at all. When you upgrade to a paid plan, your existing account seamlessly transitions. All your reading history, saved articles, and preferences are preserved. Simply choose your plan and complete the checkout — it takes less than a minute.',
+  },
+];
+---
+
+<BaseLayout title={title} description={description} canonicalUrl="/subscribe/pricing">
+  <div class="page-transition">
+
+    <!-- ==================== Hero Header ==================== -->
+    <section class="bg-gradient-to-br from-primary via-secondary to-primary py-16 sm:py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 bg-accent/10 border border-accent/20 rounded-full text-accent text-sm font-medium mb-6">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          Pricing
+        </span>
+
+        <h1 class="font-editorial text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
+          Simple, Transparent Pricing
+        </h1>
+        <p class="text-gray-300 text-lg sm:text-xl max-w-2xl mx-auto">
+          No hidden fees. No surprises. Choose the plan that fits your reading habits and budget.
+        </p>
+
+        <!-- Quick stats -->
+        <div class="flex flex-wrap items-center justify-center gap-6 sm:gap-10 mt-8">
+          <div class="text-center">
+            <span class="block text-2xl font-bold text-white">30-day</span>
+            <span class="text-gray-400 text-sm">Free trial</span>
+          </div>
+          <div class="w-px h-8 bg-white/20 hidden sm:block"></div>
+          <div class="text-center">
+            <span class="block text-2xl font-bold text-white">Cancel</span>
+            <span class="text-gray-400 text-sm">Anytime</span>
+          </div>
+          <div class="w-px h-8 bg-white/20 hidden sm:block"></div>
+          <div class="text-center">
+            <span class="block text-2xl font-bold text-white">256-bit</span>
+            <span class="text-gray-400 text-sm">SSL encrypted</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Pricing Cards ==================== -->
+    <section class="py-16 bg-white dark:bg-gray-950 -mt-8">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-0 items-stretch">
+          {mainPlans.map((plan) => {
+            const isPopular = plan.highlighted === true;
+            return (
+              <div class={isPopular ? 'md:-my-4 md:px-2 lg:px-3' : 'md:px-2 lg:px-3'}>
+                <PricingCard
+                  plan={plan}
+                  isPopular={isPopular}
+                  annualSavings={isPopular ? annualSavings : undefined}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Money-Back Guarantee ==================== -->
+    <section class="py-12 bg-surface dark:bg-gray-900 border-y border-border dark:border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+          <!-- Shield icon -->
+          <div class="flex-shrink-0 w-14 h-14 rounded-full bg-accent/10 dark:bg-accent/10 flex items-center justify-center">
+            <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <!-- Text -->
+          <div>
+            <h3 class="font-semibold text-lg text-text-primary dark:text-gray-100">
+              30-Day Money-Back Guarantee
+            </h3>
+            <p class="text-text-secondary dark:text-gray-400 text-sm mt-1">
+              Not satisfied? Get a full refund within 30 days, no questions asked.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Plan Comparison Table ==================== -->
+    <section class="py-16 bg-white dark:bg-gray-950">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <h2 class="font-editorial text-3xl sm:text-4xl font-bold mb-3">
+            Detailed Feature Comparison
+          </h2>
+          <p class="text-text-secondary dark:text-gray-400 max-w-xl mx-auto">
+            Every feature, every plan — laid out clearly so you can make the best choice.
+          </p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 overflow-hidden shadow-sm">
+          <PlanComparison plans={plans} />
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FAQ Section ==================== -->
+    <section class="py-16 bg-surface dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <h2 class="font-editorial text-3xl sm:text-4xl font-bold mb-3">
+            Still Have Questions?
+          </h2>
+          <p class="text-text-secondary dark:text-gray-400 max-w-xl mx-auto">
+            We've answered the most common questions about our plans below.
+          </p>
+        </div>
+
+        <FAQ items={faqItems} />
+      </div>
+    </section>
+
+    <!-- ==================== Contact CTA ==================== -->
+    <section class="py-12 bg-white dark:bg-gray-950 border-t border-border dark:border-gray-800">
+      <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="flex items-center justify-center gap-3 mb-3">
+          <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <h3 class="font-editorial text-2xl font-bold text-text-primary dark:text-gray-100">
+            Still have questions?
+          </h3>
+        </div>
+        <p class="text-text-secondary dark:text-gray-400 mb-6">
+          Our team is here to help you find the perfect plan.
+        </p>
+        <a
+          href="mailto:subscriptions@meridian-mag.com"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-sky-600 text-white font-semibold rounded-lg transition-colors shadow-md"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Contact Our Team
+        </a>
+      </div>
+    </section>
+
+    <!-- ==================== Newsletter CTA ==================== -->
+    <NewsletterSignup variant="section" />
+
+  </div>
+</BaseLayout>

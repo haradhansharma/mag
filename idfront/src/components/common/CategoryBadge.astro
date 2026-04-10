@@ -1,0 +1,91 @@
+---
+/**
+ * CategoryBadge.astro
+ *
+ * A small colored badge showing the category name.
+ *
+ * Props:
+ *   category   — Category object (name, color, access)
+ *   size       — 'sm' | 'md' (default: 'md')
+ *   showLock   — Show premium lock icon (default: follows category.access)
+ *   variant    — 'filled' | 'text-only' (default: 'filled')
+ *   href       — Optional link wrapping the badge
+ */
+
+import type { Category } from '@data/types';
+import { getCategoryColorClasses } from '@utils/helpers';
+
+interface Props {
+  category: Category;
+  size?: 'sm' | 'md';
+  showLock?: boolean;
+  variant?: 'filled' | 'text-only';
+  href?: string;
+}
+
+const {
+  category,
+  size = 'md',
+  showLock,
+  variant = 'filled',
+  href,
+} = Astro.props;
+
+const colors = getCategoryColorClasses(category.color);
+const isPremium = showLock === true || category.access === 'premium';
+
+// Build class strings
+const filledSm = `${colors.bg} text-white text-[10px] font-bold rounded uppercase px-2 py-0.5`;
+const filledMd = `${colors.bg} text-white text-xs font-bold rounded-md uppercase px-2.5 py-1`;
+const filledClass = size === 'sm' ? filledSm : filledMd;
+
+const textOnlyClass = [
+  colors.text,
+  'text-[10px] font-bold uppercase tracking-wider',
+  size !== 'sm' && 'mb-1',
+].filter(Boolean).join(' ');
+
+const lockSizeClass = size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5';
+---
+
+{variant === 'text-only' ? (
+  href ? (
+    <a href={href} class="inline-flex items-center">
+      <span class={textOnlyClass}>{category.name}</span>
+      {isPremium && (
+        <svg class:list={[lockSizeClass, 'inline-block ml-1 -mt-px', colors.text]} fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+        </svg>
+      )}
+    </a>
+  ) : (
+    <span class="inline-flex items-center">
+      <span class={textOnlyClass}>{category.name}</span>
+      {isPremium && (
+        <svg class:list={[lockSizeClass, 'inline-block ml-1 -mt-px', colors.text]} fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+        </svg>
+      )}
+    </span>
+  )
+) : (
+  href ? (
+    <a href={href} class:list={['inline-flex items-center gap-0.5', filledClass]}>
+      {category.name}
+      {isPremium && (
+        <svg class:list={[lockSizeClass, 'inline-block ml-0.5']} fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+        </svg>
+      )}
+    </a>
+  ) : (
+    <span class:list={['inline-flex items-center gap-0.5', filledClass]}>
+      {category.name}
+      {isPremium && (
+        <svg class:list={[lockSizeClass, 'inline-block ml-0.5']} fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+        </svg>
+      )}
+    </span>
+  )
+)}

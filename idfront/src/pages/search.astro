@@ -1,0 +1,162 @@
+---
+/**
+ * Search Page — /search
+ * Article search with server-side query processing and client-side form.
+ * Since output is 'static', this page renders results server-side at build time
+ * when a query param is present, and shows trending suggestions otherwise.
+ * For runtime search, the SearchBar component in the header handles it.
+ */
+
+import BaseLayout from '@layouts/BaseLayout.astro';
+import ArticleCard from '@components/common/ArticleCard.astro';
+import { searchArticles, getTrendingArticles } from '../data/service.ts';
+
+// Get search query from URL params
+const query = Astro.url.searchParams.get('q') || '';
+
+// Search results (server-side at build time)
+let searchResults = null;
+let totalResults = 0;
+
+if (query.trim()) {
+  searchResults = searchArticles(query, { page: 1, perPage: 12 });
+  totalResults = searchResults.totalResults;
+}
+
+// Trending articles for empty-state suggestions
+const trendingArticles = getTrendingArticles();
+
+// SEO
+const title = query
+  ? `Search results for "${query}" — MERIDIAN`
+  : 'Search MERIDIAN — Find Articles';
+const description = query
+  ? `${totalResults} articles found for "${query}" in MERIDIAN magazine.`
+  : 'Search across all MERIDIAN articles, categories, and authors to find exactly what you need.';
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="page-transition">
+
+    <!-- ==================== Search Header ==================== -->
+    <section class="bg-surface dark:bg-gray-900 py-12 border-b border-border dark:border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Title row -->
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          {query ? (
+            <h1 class="font-editorial text-2xl sm:text-3xl font-bold">
+              Search Results
+            </h1>
+          ) : (
+            <h1 class="font-editorial text-2xl sm:text-3xl font-bold">
+              Search MERIDIAN
+            </h1>
+          )}
+        </div>
+
+        {query ? (
+          <p class="text-text-secondary dark:text-gray-400 ml-[52px]">
+            Search results for &ldquo;{query}&rdquo; — {totalResults} article{totalResults !== 1 ? 's' : ''} found
+          </p>
+        ) : (
+          <p class="text-text-secondary dark:text-gray-400 ml-[52px]">
+            Explore our archive of articles across all categories and editions.
+          </p>
+        )}
+
+        <!-- Search Form -->
+        <form action="/search" method="get" class="mt-8 max-w-2xl mx-auto">
+          <div class="relative">
+            <!-- Search icon -->
+            <svg
+              class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted dark:text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              name="q"
+              value={query}
+              placeholder="Search articles, topics, authors..."
+              class="w-full pl-12 pr-28 py-4 rounded-xl bg-white dark:bg-gray-800 border border-border dark:border-gray-700 text-text-primary dark:text-gray-100 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-lg shadow-sm"
+              autofocus
+            />
+            <button
+              type="submit"
+              class="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-accent hover:bg-sky-600 text-white font-semibold rounded-lg transition-colors"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== Results / Empty State / Trending ==================== -->
+    <section class="py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* --- Results Grid (when query has results) --- */}
+        {query && searchResults && searchResults.articles.length > 0 && (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {searchResults.articles.map((article) => (
+              <ArticleCard article={article} variant="grid" />
+            ))}
+          </div>
+        )}
+
+        {/* --- No Results Empty State --- */}
+        {query && searchResults && searchResults.articles.length === 0 && (
+          <div class="text-center py-20">
+            <div class="w-20 h-20 rounded-full bg-surface dark:bg-gray-800 flex items-center justify-center mx-auto mb-6">
+              <svg class="w-10 h-10 text-text-muted dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 class="font-editorial text-2xl font-bold mb-2">No articles found</h2>
+            <p class="text-text-secondary dark:text-gray-400 max-w-md mx-auto mb-8">
+              We couldn&rsquo;t find any articles matching &ldquo;{query}&rdquo;. Try a different search term or browse our trending articles below.
+            </p>
+
+            {/* Trending suggestions */}
+            <div class="max-w-4xl mx-auto">
+              <h3 class="text-sm font-semibold text-text-muted dark:text-gray-500 uppercase tracking-wider mb-6">
+                Trending Articles
+              </h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {trendingArticles.slice(0, 6).map((article) => (
+                  <ArticleCard article={article} variant="grid" />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- Trending Suggestions (when no query) --- */}
+        {!query && (
+          <div>
+            <h2 class="font-editorial text-2xl font-bold mb-2">Trending Articles</h2>
+            <p class="text-text-secondary dark:text-gray-400 mb-8">
+              Start exploring with our most popular articles this week.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trendingArticles.map((article) => (
+                <ArticleCard article={article} variant="grid" />
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </section>
+
+  </div>
+</BaseLayout>

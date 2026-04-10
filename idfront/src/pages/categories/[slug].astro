@@ -1,0 +1,365 @@
+---
+// ============================================================
+// MERIDIAN Magazine — Category Page (Mockup Redesign)
+// ============================================================
+// Dynamic route: /categories/{slug}
+// Displays all articles in a specific category with:
+//   1. Gradient category header with icon, name, description, category tabs
+//   2. Featured article (first pinned or first article) as large horizontal card
+//   3. Article list (remaining articles) as horizontal list items
+//   4. Pagination
+//   5. Newsletter signup (inline variant)
+// ============================================================
+
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/common/Breadcrumbs.astro';
+import CategoryBadge from '@components/common/CategoryBadge.astro';
+import Pagination from '@components/common/Pagination.astro';
+import NewsletterSignup from '@components/common/NewsletterSignup.astro';
+import { getAllCategories, getCategoryPageData } from '@data/service';
+import { buildCollectionJsonLd, formatDate, getInitials, getCategoryColorClasses } from '@utils/helpers';
+
+// --- Static paths for all categories ---
+export function getStaticPaths() {
+  const categories = getAllCategories();
+  return categories.map((cat) => ({
+    params: { slug: cat.slug },
+  }));
+}
+
+// --- Fetch category page data ---
+const { slug } = Astro.params;
+const data = getCategoryPageData(slug!, { page: 1, perPage: 9 });
+
+// Redirect to 404 if category not found
+if (!data) {
+  return Astro.redirect('/404');
+}
+
+const { category, articles, totalPages, totalArticles, currentPage } = data;
+
+// --- All categories for the tab pills ---
+const allCategories = getAllCategories();
+
+// --- Featured article: first pinned, or first article ---
+const featuredArticle = articles.find(a => a.pinned) || articles[0];
+const listArticles = featuredArticle
+  ? articles.filter(a => a.id !== featuredArticle.id)
+  : articles;
+
+// --- Category gradient mapping ---
+function getCategoryGradient(color: string): string {
+  const gradientMap: Record<string, string> = {
+    blue:     'from-blue-900 to-sky-500',
+    green:    'from-emerald-900 to-green-500',
+    purple:   'from-purple-900 to-violet-500',
+    rose:     'from-red-900 to-rose-500',
+    orange:   'from-orange-900 to-amber-500',
+    teal:     'from-teal-900 to-cyan-500',
+    amber:    'from-amber-900 to-yellow-500',
+    indigo:   'from-indigo-900 to-violet-500',
+    cyan:     'from-cyan-900 to-sky-500',
+    pink:     'from-pink-900 to-rose-500',
+    emerald:  'from-emerald-900 to-teal-500',
+  };
+  return gradientMap[color] || gradientMap.blue;
+}
+
+const gradientClasses = `bg-gradient-to-br ${getCategoryGradient(category.color)}`;
+
+// --- Category icon SVGs ---
+function getCategoryIcon(color: string): string {
+  const iconMap: Record<string, string> = {
+    blue: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
+    rose: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    green: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    purple: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-10 0a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2M9 12h6m-6 4h4"/></svg>`,
+    orange: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+    teal: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>`,
+    amber: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    indigo: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>`,
+    cyan: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>`,
+    pink: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>`,
+    emerald: `<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>`,
+  };
+  return iconMap[color] || iconMap.blue;
+}
+
+// --- Breadcrumb items ---
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Categories', href: '/editions/archive' },
+  { label: category.name },
+];
+
+// --- JSON-LD for CollectionPage ---
+const collectionJsonLd = buildCollectionJsonLd({
+  name: `${category.name} — MERIDIAN`,
+  description: category.description,
+  url: `/categories/${slug}`,
+});
+
+// --- Helper: category color for description text ---
+function getDescriptionTextColor(color: string): string {
+  const map: Record<string, string> = {
+    blue: 'text-blue-200',
+    green: 'text-green-200',
+    purple: 'text-purple-200',
+    rose: 'text-rose-200',
+    orange: 'text-orange-200',
+    teal: 'text-teal-200',
+    amber: 'text-amber-200',
+    indigo: 'text-indigo-200',
+    cyan: 'text-cyan-200',
+    pink: 'text-pink-200',
+    emerald: 'text-emerald-200',
+  };
+  return map[color] || 'text-blue-200';
+}
+
+const descTextColor = getDescriptionTextColor(category.color);
+---
+
+<BaseLayout
+  title={`${category.name} — MERIDIAN`}
+  description={category.description}
+  canonicalUrl={`/categories/${slug}`}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(collectionJsonLd)} />
+  </Fragment>
+
+  <div class="page-transition">
+
+    <!-- ============================================ -->
+    <!-- 1. GRADIENT CATEGORY HEADER                  -->
+    <!-- ============================================ -->
+    <section class:list={[gradientClasses, 'py-16']}>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Breadcrumbs -->
+        <div class="mb-6 opacity-70">
+          <nav aria-label="Breadcrumb">
+            <ol class="flex items-center gap-x-1.5 gap-y-1 text-sm flex-wrap">
+              <li>
+                <a href="/" class="text-white/70 hover:text-white transition-colors">Home</a>
+              </li>
+              <li class="text-white/50">&rsaquo;</li>
+              <li>
+                <span class="text-white font-medium">{category.name}</span>
+              </li>
+            </ol>
+          </nav>
+        </div>
+
+        <!-- Category info row -->
+        <div class="flex items-start gap-4 mb-4">
+          <!-- Category icon -->
+          <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0 mt-1">
+            <Fragment set:html={getCategoryIcon(category.color)} />
+          </div>
+          <div>
+            <h1 class="font-editorial text-4xl sm:text-5xl font-bold text-white mb-2">
+              {category.name}
+            </h1>
+            <p class:list={[descTextColor, 'text-lg max-w-2xl leading-relaxed']}>
+              {category.description}
+            </p>
+          </div>
+        </div>
+
+        <!-- Premium badge -->
+        {category.access === 'premium' && (
+          <div class="mt-3">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-sm font-semibold">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+              </svg>
+              Premium Content
+            </span>
+          </div>
+        )}
+
+        <!-- Category tabs row -->
+        <div class="mt-8 -mx-4 sm:mx-0 overflow-x-auto scrollbar-hide">
+          <div class="flex gap-2 min-w-max px-4 sm:px-0">
+            {allCategories.map((cat) => {
+              const isActive = cat.slug === slug;
+              return (
+                <a
+                  href={`/categories/${cat.slug}`}
+                  class:list={[
+                    'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200',
+                    isActive
+                      ? 'bg-white text-primary shadow-lg'
+                      : 'bg-white/10 text-white hover:bg-white/20',
+                  ]}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {cat.name}
+                  {cat.access === 'premium' && (
+                    <svg class="w-3 h-3 inline-block ml-1 opacity-60" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                    </svg>
+                  )}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 2. FEATURED ARTICLE                          -->
+    <!-- ============================================ -->
+    {featuredArticle && (
+      <section class="bg-white dark:bg-gray-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <a href={`/articles/${featuredArticle.slug}`} class="group block">
+            <div class="flex flex-col md:flex-row rounded-2xl overflow-hidden border border-border dark:border-gray-800 hover:shadow-xl transition-shadow duration-300">
+              <!-- Image -->
+              <div class="md:w-1/2 h-64 md:h-auto overflow-hidden flex-shrink-0">
+                <img
+                  src={featuredArticle.coverImage}
+                  alt={featuredArticle.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  width="800"
+                  height="500"
+                />
+              </div>
+              <!-- Content -->
+              <div class="md:w-1/2 p-8 flex flex-col justify-center">
+                <span class="text-accent text-xs font-bold uppercase tracking-wider mb-3">
+                  Featured Story
+                </span>
+                <h2 class="font-editorial text-2xl sm:text-3xl font-bold mb-3 group-hover:text-accent transition-colors">
+                  {featuredArticle.title}
+                </h2>
+                <p class="text-text-secondary dark:text-gray-400 line-clamp-3 mb-5 leading-relaxed">
+                  {featuredArticle.excerpt}
+                </p>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-blue-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    {getInitials(featuredArticle.author?.name || 'M')}
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-text-primary dark:text-gray-100">
+                      {featuredArticle.author?.name || 'Staff'}
+                    </p>
+                    <p class="text-xs text-text-muted dark:text-gray-500">
+                      {formatDate(featuredArticle.publishedAt, 'medium')} &middot; {featuredArticle.readingTime} min read
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </section>
+    )}
+
+    <!-- ============================================ -->
+    <!-- 3. ARTICLE LIST                              -->
+    <!-- ============================================ -->
+    <section class="bg-white dark:bg-gray-950">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+        {listArticles.length > 0 ? (
+          <div class="space-y-1">
+            {listArticles.map((article) => {
+              const initials = getInitials(article.author?.name || 'M');
+              return (
+                <a
+                  href={`/articles/${article.slug}`}
+                  class="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl hover:bg-surface dark:hover:bg-gray-800 transition-colors duration-200"
+                >
+                  <!-- Thumbnail -->
+                  <div class="sm:w-48 h-32 sm:h-auto rounded-xl overflow-hidden flex-shrink-0">
+                    <img
+                      src={article.coverImage}
+                      alt={article.title}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      width="200"
+                      height="150"
+                    />
+                  </div>
+                  <!-- Content -->
+                  <div class="flex-1 flex flex-col justify-center min-w-0 py-1">
+                    <!-- Category badge + premium indicator -->
+                    <div class="flex items-center gap-2 mb-1.5">
+                      {article.category && (
+                        <CategoryBadge category={article.category} size="sm" variant="text-only" />
+                      )}
+                      {article.access === 'premium' && (
+                        <svg class="w-3 h-3 text-accent-warm" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                        </svg>
+                      )}
+                    </div>
+                    <!-- Title -->
+                    <h3 class="font-editorial text-lg sm:text-xl font-bold mb-1.5 group-hover:text-accent transition-colors line-clamp-2">
+                      {article.title}
+                    </h3>
+                    <!-- Excerpt -->
+                    <p class="text-sm text-text-secondary dark:text-gray-400 line-clamp-2 mb-3 hidden sm:block">
+                      {article.excerpt}
+                    </p>
+                    <!-- Author + reading time -->
+                    <div class="flex items-center gap-2 text-xs text-text-muted dark:text-gray-500">
+                      <div class="w-5 h-5 rounded-full bg-gradient-to-br from-accent to-blue-700 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                        {initials}
+                      </div>
+                      <span class="font-medium text-text-secondary dark:text-gray-300">
+                        {article.author?.name || 'Staff'}
+                      </span>
+                      <span>&middot;</span>
+                      <span>{article.readingTime} min read</span>
+                      <span>&middot;</span>
+                      <span>{formatDate(article.publishedAt, 'short')}</span>
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <!-- Empty state (shown when only the featured article exists) -->
+          <div class="text-center py-12">
+            <svg class="w-12 h-12 mx-auto text-text-muted/30 dark:text-gray-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+            </svg>
+            <h3 class="font-editorial text-lg font-bold text-text-secondary dark:text-gray-400 mb-1">
+              More stories coming soon
+            </h3>
+            <p class="text-sm text-text-muted dark:text-gray-500">
+              Additional articles in this category will appear here once published.
+            </p>
+          </div>
+        )}
+
+        <!-- ============================================ -->
+        <!-- 4. PAGINATION                               -->
+        <!-- ============================================ -->
+        {articles.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            basePath={`/categories/${slug}`}
+          />
+        )}
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 5. NEWSLETTER SIGNUP                         -->
+    <!-- ============================================ -->
+    <section class="bg-surface dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <NewsletterSignup variant="inline" />
+      </div>
+    </section>
+
+  </div>
+</BaseLayout>

@@ -1,0 +1,60 @@
+---
+// print/[slug].astro
+// Weekly print preview page for a specific edition.
+// Generates a full print-ready preview with:
+// - Cover page via CoverTemplate
+// - Table of Contents via PrintLayout
+// - All articles rendered via ArticlePrint
+// - PDF download link
+// Static paths generated for all print-ready editions.
+
+import PrintLayout from '@layouts/PrintLayout.astro';
+import CoverTemplate from '@components/print/CoverTemplate.astro';
+import ArticlePrint from '@components/print/ArticlePrint.astro';
+import { getAllEditions } from '@data/service';
+import { formatEditionDateRange } from '@utils/helpers';
+
+export function getStaticPaths() {
+  const editions = getAllEditions().filter(e => e.printReady);
+
+  return editions.map(edition => ({
+    params: { slug: edition.slug },
+    props: { edition },
+  }));
+}
+
+interface Props {
+  edition: Awaited<ReturnType<typeof getAllEditions>>[number];
+}
+
+const { edition } = Astro.props;
+
+if (!edition) {
+  return Astro.redirect('/print/order');
+}
+
+const dateRange = formatEditionDateRange(edition.weekStart, edition.weekEnd);
+---
+
+<PrintLayout
+  title={`Print Preview: Edition #${edition.number} — MERIDIAN`}
+  edition={edition}
+  description={`Print preview for MERIDIAN Magazine Edition #${edition.number}: ${edition.title}. ${dateRange}.`}
+>
+  <!-- Cover slot -->
+  <CoverTemplate slot="cover" edition={edition} />
+
+  <!-- Articles slot — each article on its own "page" -->
+  <div slot="articles">
+    {edition.articles && edition.articles.map((article, index) => (
+      <div class="print-page" style="padding: 20mm 18mm 25mm 18mm;">
+        <ArticlePrint
+          article={article}
+          pageNumber={index + 3}
+          isTwoColumn={article.contentType === 'feature' && index > 0}
+          isFeature={article.featured}
+        />
+      </div>
+    ))}
+  </div>
+</PrintLayout>

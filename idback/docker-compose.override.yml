@@ -1,0 +1,15 @@
+services:
+  mbackend:
+    environment:
+      - MDB_HOST=mdb
+      - REDIS_HOST=mredis
+
+  mcelery:
+    environment:
+      - MDB_HOST=mdb
+      - REDIS_HOST=mredis
+
+  mcelerybeat:
+    environment:
+      - MDB_HOST=mdb
+      - REDIS_HOST=mredis
