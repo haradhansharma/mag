@@ -3,7 +3,6 @@ Seed command that parses the Astro frontend .ts dummy data files
 and populates the Django database.
 """
 
-import json
 import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -14,22 +13,29 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils.dateparse import parse_datetime, parse_date
 
-from meridian.models import (
+from common.models import (
     Article,
     Author,
-    AuthToken,
     Category,
     Edition,
-    EditorialActivity,
     PrintOrder,
+)
+from users.models import (
+    AuthToken,
+    EditorialActivity,
     Subscription,
     SubscriptionPlan,
 )
-from meridian.auth import create_token_for_user
+from api.auth import create_token_for_user
 
 User = get_user_model()
 
-DUMMY_DIR = Path("/home/z/my-project/web-magazine/src/data/dummy")
+# Seed data directory — looks for dummy TypeScript files.
+# Docker: /app/seed_data (symlink from backend/seed_data -> idfront/src/data/dummy)
+# The symlink should be created on the host:
+#   ln -s ../../idfront/src/data/dummy backend/seed_data
+# DUMMY_DIR = Path(__file__).resolve().parents[2] / "seed_data"
+DUMMY_DIR = Path(__file__).resolve().parents[3] / "seed_data"
 
 
 def _read_file(filepath):

@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -10,15 +10,20 @@ from users.models import AuthToken
 
 User = get_user_model()
 
+# Token lifetime: 7 days (configurable via env)
+TOKEN_LIFETIME_DAYS = int(getattr(settings, "AUTH_TOKEN_LIFETIME_DAYS", 7))
+
 
 def generate_token() -> str:
     return secrets.token_urlsafe(48)
 
 
 def create_token_for_user(user: User) -> AuthToken:
+    expires_at = datetime.now(timezone.utc) + timedelta(days=TOKEN_LIFETIME_DAYS)
     token = AuthToken.objects.create(
         user=user,
         key=generate_token(),
+        expires_at=expires_at,
     )
     return token
 
@@ -26,7 +31,7 @@ def create_token_for_user(user: User) -> AuthToken:
 def get_user_from_token(token_key: str) -> User | None:
     try:
         token = AuthToken.objects.select_related("user").get(key=token_key)
-        if token.user.is_active:
+        if token.user.is_active and not token.is_expired:
             return token.user
     except AuthToken.DoesNotExist:
         return None

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 import uuid
@@ -115,11 +117,12 @@ class EditorialActivity(models.Model):
 
 
 class AuthToken(models.Model):
-    """Simple token-based authentication model."""
+    """Simple token-based authentication model with expiry."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="auth_tokens")
     key = models.CharField(max_length=64, unique=True, db_index=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -127,3 +130,9 @@ class AuthToken(models.Model):
 
     def __str__(self):
         return f"Token for {self.user.username}"
+
+    @property
+    def is_expired(self) -> bool:
+        if self.expires_at is None:
+            return False
+        return datetime.now(timezone.utc) >= self.expires_at

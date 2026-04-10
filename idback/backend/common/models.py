@@ -2,7 +2,6 @@
 from django.contrib.sites.models import Site
 from django.db import models
 import uuid
-from django.contrib.auth import get_user_model
 
 
 class SiteConfig(Site):
@@ -215,6 +214,7 @@ class Article(models.Model):
     seo_description = models.CharField(max_length=1000, blank=True, default="")
     seo_keywords = models.JSONField(blank=True, default=list)
     published_at = models.DateTimeField(null=True, blank=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     reading_time = models.PositiveIntegerField(default=0)

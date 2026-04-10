@@ -20,10 +20,11 @@ from api.auth import (
     writer_required,
 )
 from users.models import (
+    EditorialActivity,
     Subscription,
     SubscriptionPlan,
 )
-from common.models import Article, Category, Edition, PrintOrder
+from common.models import Article, Author, Category, Edition, PrintOrder
 from api.schemas import (
     ArticleBrief,
     ArticleCreate,
@@ -419,7 +420,7 @@ def search_articles(
         Q(title__icontains=q)
         | Q(excerpt__icontains=q)
         | Q(content__icontains=q)
-        | Q(seo_keywords__icontains=q)
+        | Q(seo_keywords__contains=q)
     )
     if category:
         qs = qs.filter(category__slug=category)
@@ -575,6 +576,12 @@ def get_current_user(request: HttpRequest):
     )
 
 
+@api.post("/auth/logout/", response=MessageOut, auth=GlobalAuth())
+def logout(request: HttpRequest):
+    delete_user_tokens(request.auth)
+    return MessageOut(message="Logged out successfully")
+
+
 # ============================================================
 # Writer Routes (role=writer required)
 # ============================================================
@@ -585,9 +592,13 @@ def create_article(request: HttpRequest, data: ArticleCreate):
     user = writer_required(request.auth)
     author = Author.objects.filter(user=user).first()
     if not author:
-        from ninja.errors import HttpError
+        # Admin/editor can specify a different author
+        if data.author_id and user.role in (User.Role.EDITOR, User.Role.ADMIN):
+            author = Author.objects.filter(pk=data.author_id).first()
+        if not author:
+            from ninja.errors import HttpError
 
-        raise HttpError(400, "User does not have an author profile")
+            raise HttpError(400, "User does not have an author profile")
 
     category = Category.objects.filter(id=data.category_id).first()
     if not category:
@@ -726,6 +737,7 @@ def submit_article(request: HttpRequest, article_id: str):
         raise HttpError(400, "Only draft or rejected articles can be submitted")
 
     article.status = Article.Status.IN_REVIEW
+    article.submitted_at = datetime.now(timezone.utc)
     article.rejection_reason = ""
     article.save()
 
@@ -836,7 +848,7 @@ def editorial_queue(
             cover_image=a.cover_image.url if a.cover_image else "",
             excerpt=a.excerpt,
             status=a.status,
-            submitted_at=a.updated_at,
+            submitted_at=a.submitted_at,
             updated_at=a.updated_at,
             reviewed_by_name=a.reviewed_by.name if a.reviewed_by else None,
             rejection_reason=a.rejection_reason,

@@ -1,6 +1,4 @@
-import uuid
-from decimal import Decimal
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Generic, List, Optional, TypeVar
 
 from datetime import date, datetime
 from pydantic import BaseModel, Field
@@ -211,7 +209,9 @@ class ArticleCreate(BaseModel):
     excerpt: str = Field(default="", max_length=500)
     cover_image: str = ""
     cover_caption: str = Field(default="", max_length=500)
-    author_id: str
+    author_id: Optional[str] = (
+        None  # Optional — writers use their linked profile, admins can override
+    )
     category_id: str
     content_type: str = Field(default="article", max_length=20)
     access: str = Field(default="public", max_length=10)
