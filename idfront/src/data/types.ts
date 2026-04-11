@@ -166,6 +166,15 @@ export interface SocialLink {
   label: string;
 }
 
+export interface PaymentGateway {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;              // SVG path or emoji
+  paymentLink: string;       // Hosted payment link URL (e.g. Stripe link)
+  enabled: boolean;
+}
+
 export interface SiteConfig {
   name: string;
   tagline: string;
@@ -179,6 +188,8 @@ export interface SiteConfig {
   footerLinks: NavLink[];
   socialLinks: SocialLink[];
   subscriptionPlans: SubscriptionPlan[];
+  paymentGateways?: PaymentGateway[];
+  termsOfServiceUrl?: string;
 }
 
 export interface SubscriptionPlan {

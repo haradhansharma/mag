@@ -1,0 +1,246 @@
+---
+/**
+ * Register Page — /auth/register
+ * User registration with username, email, password.
+ * After registration, user receives verification email.
+ * Uses Alpine.js for form state management and API calls.
+ */
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/common/Breadcrumbs.astro';
+---
+
+<BaseLayout
+  title="Create Account — MERIDIAN Magazine"
+  description="Create your free MERIDIAN account to access journalism, manage subscriptions, and join our community."
+  canonicalUrl="/auth/register"
+>
+  <div class="page-transition">
+    <div class="min-h-[80vh] flex items-center justify-center py-12 px-4">
+      <div class="w-full max-w-md">
+        <!-- Breadcrumbs -->
+        <div class="mb-8">
+          <Breadcrumbs items={[
+            { label: 'Home', href: '/' },
+            { label: 'Create Account' },
+          ]} />
+        </div>
+
+        <!-- Register Card -->
+        <div
+          x-data="registerForm()"
+          class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 shadow-sm overflow-hidden"
+        >
+          <!-- Header -->
+          <div class="bg-gradient-to-br from-primary via-secondary to-primary p-8 text-center">
+            <div class="w-12 h-12 bg-accent rounded-sm flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold text-xl font-editorial">M</span>
+            </div>
+            <h1 class="font-editorial text-2xl font-bold text-white">Create Your Account</h1>
+            <p class="text-gray-300 text-sm mt-1">Join 250,000+ readers on MERIDIAN</p>
+          </div>
+
+          <!-- Form -->
+          <div class="p-6 sm:p-8">
+            <form @submit.prevent="handleRegister()" class="space-y-4">
+              <!-- Username -->
+              <div>
+                <label for="reg-username" class="block text-sm font-medium text-text-secondary dark:text-gray-400 mb-1.5">
+                  Username *
+                </label>
+                <input
+                  type="text"
+                  id="reg-username"
+                  x-model="username"
+                  required
+                  minlength="3"
+                  maxlength="30"
+                  autocomplete="username"
+                  placeholder="Choose a username"
+                  class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-100 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                />
+              </div>
+
+              <!-- Email -->
+              <div>
+                <label for="reg-email" class="block text-sm font-medium text-text-secondary dark:text-gray-400 mb-1.5">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  id="reg-email"
+                  x-model="email"
+                  required
+                  autocomplete="email"
+                  placeholder="you@example.com"
+                  class="w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-100 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                />
+              </div>
+
+              <!-- Password -->
+              <div>
+                <label for="reg-password" class="block text-sm font-medium text-text-secondary dark:text-gray-400 mb-1.5">
+                  Password *
+                </label>
+                <div class="relative">
+                  <input
+                    :type="showPassword ? 'text' : 'password'"
+                    id="reg-password"
+                    x-model="password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    placeholder="Min. 8 characters"
+                    class="w-full px-4 pr-12 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-100 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                  />
+                  <button
+                    type="button"
+                    @click="showPassword = !showPassword"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted dark:text-gray-500 hover:text-text-secondary dark:hover:text-gray-400"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                  >
+                    <svg x-show="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <svg x-show="showPassword" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Error message -->
+              <div x-show="error" x-cloak x-transition class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
+                <p class="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span x-text="error"></span>
+                </p>
+              </div>
+
+              <!-- Success message -->
+              <div x-show="success" x-cloak x-transition class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
+                <svg class="w-10 h-10 mx-auto text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <h3 class="font-semibold text-green-700 dark:text-green-400">Account Created!</h3>
+                <p class="text-sm text-green-600 dark:text-green-500 mt-1">
+                  A verification email has been sent to your inbox. Please verify your email to activate your account.
+                </p>
+              </div>
+
+              <!-- Submit Button -->
+              <div x-show="!success">
+                <button
+                  type="submit"
+                  :disabled="loading"
+                  class="w-full py-3.5 bg-accent hover:bg-sky-600 disabled:bg-accent/50 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                  <svg x-show="loading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span x-text="loading ? 'Creating Account...' : 'Create Account'"></span>
+                </button>
+              </div>
+
+              <!-- Terms -->
+              <p class="text-xs text-text-muted dark:text-gray-500 text-center" x-show="!success">
+                By creating an account, you agree to our
+                <a href="/terms" class="text-accent hover:underline">Terms of Service</a> and
+                <a href="/privacy" class="text-accent hover:underline">Privacy Policy</a>.
+              </p>
+            </form>
+
+            <!-- Divider -->
+            <div x-show="!success" class="relative my-6">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-border dark:border-gray-700"></div>
+              </div>
+              <div class="relative flex justify-center text-xs">
+                <span class="px-3 bg-white dark:bg-gray-900 text-text-muted dark:text-gray-500">or</span>
+              </div>
+            </div>
+
+            <!-- Login Link -->
+            <p x-show="!success" class="text-center text-sm text-text-secondary dark:text-gray-400">
+              Already have an account?
+              <a href="/auth/login" class="text-accent hover:text-sky-600 font-semibold transition-colors">
+                Sign in
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+function registerForm() {
+  return {
+    username: '',
+    email: '',
+    password: '',
+    showPassword: false,
+    loading: false,
+    error: '',
+    success: false,
+
+    async handleRegister() {
+      this.error = '';
+      this.success = false;
+      if (!this.username.trim() || !this.email.trim() || !this.password.trim()) {
+        this.error = 'Please fill in all fields.';
+        return;
+      }
+      if (this.username.trim().length < 3) {
+        this.error = 'Username must be at least 3 characters.';
+        return;
+      }
+      if (this.password.length < 8) {
+        this.error = 'Password must be at least 8 characters.';
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+        this.error = 'Please enter a valid email address.';
+        return;
+      }
+      this.loading = true;
+      try {
+        const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PUBLIC_API_URL) || 'http://localhost:8085/api/v1';
+        const res = await fetch(`${API_BASE}/auth/register/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: this.username.trim(),
+            email: this.email.trim(),
+            password: this.password,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          this.error = data.detail || data.message || data.username?.[0] || data.email?.[0] || 'Registration failed. Please try again.';
+          return;
+        }
+        // Store token if returned
+        if (data.token) {
+          localStorage.setItem('meridian_token', data.token);
+          localStorage.setItem('meridian_user', JSON.stringify({
+            id: data.user_id,
+            username: data.username,
+            role: data.role,
+            isVerified: data.is_verified,
+          }));
+        }
+        this.success = true;
+      } catch (err) {
+        this.error = 'Unable to connect to server. Please check your connection and try again.';
+      } finally {
+        this.loading = false;
+      }
+    },
+  };
+}
+</script>

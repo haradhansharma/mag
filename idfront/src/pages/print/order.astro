@@ -1,21 +1,24 @@
 ---
 // print/order.astro
 // Print-on-Demand order page with:
-// - WeekSelector (Alpine.js calendar/edition picker)
-// - PrintPreview (iframe or visual preview)
+// - Edition Selector (Alpine.js dropdown)
+// - PrintPreview (simulated cover)
 // - OrderForm (quantity +/-, address fields, price calculation)
+// - Payment Gateway Modal (TOC consent + gateway selection)
 // Wrapped in BaseLayout for consistent site navigation.
 
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Breadcrumbs from '@components/common/Breadcrumbs.astro';
 import NewsletterSignup from '@components/common/NewsletterSignup.astro';
-import { getAllEditions } from '@data/service';
+import { getAllEditions, getSiteConfig } from '@data/service';
 import { formatEditionDateRange } from '@utils/helpers';
 
 const allEditions = await getAllEditions();
 const printReadyEditions = allEditions.filter(e => e.printReady);
+const { paymentGateways = [], termsOfServiceUrl = '/terms' } = getSiteConfig();
+const enabledGateways = paymentGateways.filter(g => g.enabled);
 
-// Serialize edition data for Alpine.js (client-side script can't use Astro expressions)
+// Serialize data for Alpine.js (client-side script can't use Astro expressions)
 const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
   id: e.id,
   number: e.number,
@@ -25,6 +28,14 @@ const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
   dateRange: formatEditionDateRange(e.weekStart, e.weekEnd),
   articleCount: e.articleCount,
   printReady: e.printReady,
+})));
+
+const gatewaysJson = JSON.stringify(enabledGateways.map(g => ({
+  id: g.id,
+  name: g.name,
+  description: g.description,
+  icon: g.icon,
+  paymentLink: g.paymentLink,
 })));
 ---
 
@@ -65,7 +76,7 @@ const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
 
     <!-- Main Content: 3-column layout -->
     <div
-      x-data={`printOrder(${editionsJson})`}
+      x-data={`printOrder(${editionsJson}, ${gatewaysJson})`}
       class="max-w-6xl mx-auto px-4 py-12"
     >
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -129,6 +140,15 @@ const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
               >
                 View Print Preview →
               </a>
+            </div>
+
+            <!-- No print-ready editions message -->
+            <div x-show="editions.length === 0" class="mt-4 text-center py-6">
+              <svg class="w-12 h-12 mx-auto text-text-muted dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+              </svg>
+              <p class="text-sm text-text-muted dark:text-gray-500">No print-ready editions available yet.</p>
+              <p class="text-xs text-text-muted dark:text-gray-600 mt-1">Check back soon for upcoming editions.</p>
             </div>
           </div>
 
@@ -253,7 +273,7 @@ const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
               Place Your Order
             </h3>
 
-            <form @submit.prevent="submitOrder()" class="space-y-6">
+            <form @submit.prevent="openPaymentModal()" class="space-y-6">
 
               <!-- Quantity Selector -->
               <div>
@@ -410,7 +430,7 @@ const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
                   <span class="font-bold text-accent text-xl" x-text="`$${total.toFixed(2)}`"></span>
                 </div>
                 <p x-show="shippingCost === 0" class="text-xs text-green-600 dark:text-green-400 text-center">
-                  🎉 You qualify for free shipping!
+                  You qualify for free shipping!
                 </p>
               </div>
 
@@ -418,33 +438,133 @@ const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
               <button
                 type="submit"
                 :disabled="!canSubmit()"
-                class="w-full bg-accent hover:bg-accent-dark disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                class="w-full bg-accent hover:bg-sky-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                <span x-text="submitting ? 'Placing Order...' : 'Place Order'"></span>
+                <span>Place Order</span>
               </button>
-
-              <!-- Success Message -->
-              <div
-                x-show="orderPlaced"
-                x-transition
-                role="status"
-                aria-live="polite"
-                class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-5 text-center"
-              >
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" class="mx-auto mb-3">
-                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <h4 class="font-semibold text-green-700 dark:text-green-400 text-lg mb-1">Order Placed Successfully!</h4>
-                <p class="text-sm text-green-600 dark:text-green-500">
-                  Your print order has been received. You'll receive a confirmation email shortly with tracking information.
-                </p>
-                <p class="text-xs text-green-500 dark:text-green-600 mt-2">
-                  Order ID: <span class="font-mono" x-text="orderId"></span>
-                </p>
-              </div>
             </form>
           </div>
+        </div>
+      </div>
+
+      <!-- ==================== Payment Gateway Modal ==================== -->
+      <div
+        x-show="showPaymentModal"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @keydown.escape.window="showPaymentModal = false"
+      >
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black/50" @click="showPaymentModal = false"></div>
+        <!-- Modal -->
+        <div class="relative bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6 w-full max-w-lg shadow-xl z-10 max-h-[90vh] overflow-y-auto"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 scale-95"
+          x-transition:enter-end="opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-150"
+          x-transition:leave-start="opacity-100 scale-100"
+          x-transition:leave-end="opacity-0 scale-95"
+        >
+          <!-- Close button -->
+          <button @click="showPaymentModal = false" class="absolute top-4 right-4 text-text-muted dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+
+          <h3 class="font-editorial text-xl font-bold text-primary dark:text-white pr-8">
+            Complete Your Order
+          </h3>
+          <p class="text-sm text-text-secondary dark:text-gray-400 mt-1">
+            Review your order and select a payment method to proceed.
+          </p>
+
+          <!-- Order Summary in Modal -->
+          <div class="mt-4 bg-surface-alt dark:bg-gray-800 rounded-lg p-4">
+            <h4 class="text-xs font-semibold text-text-muted dark:text-gray-500 uppercase tracking-wider mb-2">Order Summary</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-text-secondary dark:text-gray-400" x-text="selectedEdition ? `Edition #${selectedEdition.number}: ${selectedEdition.title}` : 'Print Edition'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-secondary dark:text-gray-400">Quantity</span>
+                <span class="text-primary dark:text-white font-medium" x-text="quantity"></span>
+              </div>
+              <hr class="border-border dark:border-gray-700" />
+              <div class="flex justify-between text-base">
+                <span class="font-bold text-primary dark:text-white">Total</span>
+                <span class="font-bold text-accent" x-text="`$${total.toFixed(2)}`"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terms of Service Consent -->
+          <div class="mt-5">
+            <label class="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                x-model="tocConsent"
+                class="mt-1 w-4 h-4 rounded border-border dark:border-gray-600 text-accent focus:ring-accent"
+              />
+              <span class="text-sm text-text-secondary dark:text-gray-400 group-hover:text-primary dark:group-hover:text-gray-300 transition-colors">
+                I agree to the <a href="/terms" target="_blank" class="text-accent hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" class="text-accent hover:underline">Privacy Policy</a>. I understand that placing this order initiates a payment through the selected gateway.
+              </span>
+            </label>
+          </div>
+
+          <!-- Payment Gateway Selection -->
+          <div class="mt-5">
+            <h4 class="text-sm font-semibold text-primary dark:text-white mb-3">
+              Select Payment Method
+            </h4>
+            <div class="space-y-2">
+              <template x-for="gateway in gateways" :key="gateway.id">
+                <label
+                  :class="selectedGateway === gateway.id ? 'border-accent bg-accent/5 dark:bg-accent/10 ring-1 ring-accent' : 'border-border dark:border-gray-700 hover:border-accent/50 dark:hover:border-accent/50'"
+                  class="flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all"
+                >
+                  <input
+                    type="radio"
+                    name="gateway"
+                    :value="gateway.id"
+                    x-model="selectedGateway"
+                    class="w-4 h-4 text-accent focus:ring-accent"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <!-- Gateway icon -->
+                      <template x-if="gateway.icon === 'stripe'">
+                        <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">Stripe</span>
+                      </template>
+                      <template x-if="gateway.icon === 'paypal'">
+                        <span class="text-sm font-bold text-blue-600 dark:text-blue-400">PayPal</span>
+                      </template>
+                      <template x-if="gateway.icon !== 'stripe' && gateway.icon !== 'paypal'">
+                        <span class="text-sm font-semibold text-primary dark:text-white" x-text="gateway.name"></span>
+                      </template>
+                    </div>
+                    <p class="text-xs text-text-muted dark:text-gray-500 mt-0.5" x-text="gateway.description"></p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-text-muted dark:text-gray-500 shrink-0">
+                    <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                  </svg>
+                </label>
+              </template>
+            </div>
+          </div>
+
+          <!-- Proceed to Payment Button -->
+          <button
+            @click="proceedToPayment()"
+            :disabled="!tocConsent || !selectedGateway"
+            class="mt-6 w-full bg-accent hover:bg-sky-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span>Proceed to Payment</span>
+          </button>
+
+          <p class="text-xs text-text-muted dark:text-gray-500 text-center mt-3">
+            You will be redirected to the payment gateway to complete your purchase securely.
+          </p>
         </div>
       </div>
     </div>
@@ -456,17 +576,20 @@ const editionsJson = JSON.stringify(printReadyEditions.map(e => ({
 
 <!-- Alpine.js Print Order Component -->
 <script is:inline>
-function printOrder(editionsData) {
+function printOrder(editionsData, gatewaysData) {
   return {
     editions: editionsData || [],
+    gateways: gatewaysData || [],
 
     selectedEditionId: '',
     selectedEdition: null,
     quantity: 1,
     shippingRegion: 'us',
-    submitting: false,
-    orderPlaced: false,
-    orderId: '',
+
+    // Payment modal state
+    showPaymentModal: false,
+    selectedGateway: '',
+    tocConsent: false,
 
     address: {
       firstName: '',
@@ -535,21 +658,23 @@ function printOrder(editionsData) {
         this.address.street.trim() &&
         this.address.city.trim() &&
         this.address.state.trim() &&
-        this.address.zip.trim() &&
-        !this.submitting &&
-        !this.orderPlaced;
+        this.address.zip.trim();
     },
 
-    async submitOrder() {
+    openPaymentModal() {
       if (!this.canSubmit()) return;
-      this.submitting = true;
-      this.orderId = 'MRD-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      this.selectedGateway = this.gateways.length > 0 ? this.gateways[0].id : '';
+      this.tocConsent = false;
+      this.showPaymentModal = true;
+    },
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      this.submitting = false;
-      this.orderPlaced = true;
+    proceedToPayment() {
+      if (!this.tocConsent || !this.selectedGateway) return;
+      const gateway = this.gateways.find(g => g.id === this.selectedGateway);
+      if (gateway && gateway.paymentLink) {
+        window.open(gateway.paymentLink, '_blank', 'noopener');
+        this.showPaymentModal = false;
+      }
     },
   };
 }

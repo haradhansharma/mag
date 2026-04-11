@@ -5,6 +5,26 @@
 import type { SiteConfig } from '../types';
 
 export const siteConfig: SiteConfig = {
+  // ==================== Payment Gateways ====================
+  paymentGateways: [
+    {
+      id: 'stripe',
+      name: 'Stripe',
+      description: 'Pay securely with credit/debit card via Stripe',
+      icon: 'stripe',
+      paymentLink: 'https://buy.stripe.com/placeholder_subscription',
+      enabled: true,
+    },
+    {
+      id: 'paypal',
+      name: 'PayPal',
+      description: 'Pay with your PayPal account or debit card',
+      icon: 'paypal',
+      paymentLink: 'https://www.paypal.com/ncp/payment/placeholder_subscription',
+      enabled: true,
+    },
+  ],
+  termsOfServiceUrl: '/terms',
   name: 'MERIDIAN',
   tagline: 'Your World, Synthesized',
   description:

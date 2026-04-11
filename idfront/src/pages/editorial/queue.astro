@@ -1,6 +1,6 @@
 ---
 // Editorial Queue — Pre-publish review queue
-// Interactive filtering, status updates, and reject modal via Alpine.js.
+// Interactive filtering, status updates, read-before-approve popup, and reject modal via Alpine.js.
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Breadcrumbs from '@components/common/Breadcrumbs.astro';
 import { getEditorialQueue } from '@data/dummy/editorial';
@@ -78,11 +78,11 @@ const queue = getEditorialQueue();
                     <p class="text-sm text-text-secondary dark:text-gray-400 line-clamp-1 mt-1" x-text="item.excerpt"></p>
                     <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-text-muted dark:text-gray-500">
                       <span class="font-medium text-text-secondary dark:text-gray-300" x-text="item.authorName"></span>
-                      <span>•</span>
+                      <span>·</span>
                       <span class="px-2 py-0.5 rounded-md bg-surface dark:bg-gray-800 font-medium" x-text="item.category"></span>
-                      <span>•</span>
+                      <span>·</span>
                       <span x-text="item.wordCount + ' words'"></span>
-                      <span>•</span>
+                      <span>·</span>
                       <span x-text="item.readingTime + ' min read'"></span>
                     </div>
                   </div>
@@ -96,7 +96,15 @@ const queue = getEditorialQueue();
                     <span class="text-xs text-text-muted dark:text-gray-500" x-text="timeAgo(item.submittedAt)"></span>
 
                     <!-- Action Buttons -->
-                    <div class="flex items-center gap-2 mt-1">
+                    <div class="flex items-center gap-2 mt-1 flex-wrap justify-end">
+                      <!-- Read Article button (visible for all statuses except published which has its own link) -->
+                      <template x-if="item.status !== 'published'">
+                        <button @click="openReadModal(item.id)" class="px-3 py-1.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          Read
+                        </button>
+                      </template>
+
                       <!-- Draft -->
                       <template x-if="item.status === 'draft'">
                         <button @click="submitForReview(item.id)" class="px-3 py-1.5 bg-accent hover:bg-sky-600 text-white text-xs font-semibold rounded-lg transition-colors">
@@ -143,8 +151,8 @@ const queue = getEditorialQueue();
 
                       <!-- Published -->
                       <template x-if="item.status === 'published'">
-                        <a :href="'/articles/' + item.articleId" class="px-3 py-1.5 border border-border dark:border-gray-700 text-text-muted dark:text-gray-500 text-xs font-semibold rounded-lg cursor-default pointer-events-none">
-                          Published ✓
+                        <a :href="'/articles/' + item.articleId" target="_blank" class="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors">
+                          View Published →
                         </a>
                       </template>
                     </div>
@@ -162,6 +170,98 @@ const queue = getEditorialQueue();
           </svg>
           <p class="mt-4 text-text-secondary dark:text-gray-400 font-medium">No articles match your filters</p>
           <p class="mt-1 text-sm text-text-muted dark:text-gray-500">Try adjusting your search or filter criteria</p>
+        </div>
+      </div>
+
+      <!-- ==================== Read Article Modal ==================== -->
+      <div
+        x-show="showReadModal"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @keydown.escape.window="showReadModal = false"
+      >
+        <div class="fixed inset-0 bg-black/50" @click="showReadModal = false"></div>
+        <div class="relative bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 w-full max-w-3xl shadow-xl z-10 max-h-[85vh] flex flex-col"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 scale-95"
+          x-transition:enter-end="opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-150"
+          x-transition:leave-start="opacity-100 scale-100"
+          x-transition:leave-end="opacity-0 scale-95"
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between p-5 border-b border-border dark:border-gray-800 shrink-0">
+            <div class="min-w-0 flex-1 pr-4">
+              <h3 class="font-editorial text-lg font-bold text-text-primary dark:text-gray-100 line-clamp-1" x-text="readItem ? readItem.title : ''"></h3>
+              <div class="flex items-center gap-2 mt-1 text-xs text-text-muted dark:text-gray-500">
+                <span x-text="readItem ? readItem.authorName : ''"></span>
+                <span>·</span>
+                <span x-text="readItem ? readItem.category : ''"></span>
+                <span>·</span>
+                <span x-text="readItem ? readItem.readingTime + ' min read' : ''"></span>
+              </div>
+            </div>
+            <button @click="showReadModal = false" class="shrink-0 text-text-muted dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors p-1">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <!-- Modal Body -->
+          <div class="flex-1 overflow-y-auto p-6">
+            <template x-if="readItem">
+              <div>
+                <!-- Cover Image -->
+                <img :src="readItem.coverImage" :alt="readItem.title" class="w-full h-48 sm:h-64 object-cover rounded-xl mb-6" />
+                <!-- Excerpt -->
+                <div class="prose dark:prose-invert max-w-none">
+                  <p class="text-text-secondary dark:text-gray-300 text-base leading-relaxed" x-text="readItem.excerpt"></p>
+                </div>
+                <!-- Article Meta -->
+                <div class="mt-6 bg-surface-alt dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-text-muted dark:text-gray-500">Word Count</span>
+                    <span class="text-text-primary dark:text-gray-200 font-medium" x-text="readItem.wordCount + ' words'"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-text-muted dark:text-gray-500">Reading Time</span>
+                    <span class="text-text-primary dark:text-gray-200 font-medium" x-text="readItem.readingTime + ' minutes'"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-text-muted dark:text-gray-500">Status</span>
+                    <span :class="statusClasses(readItem.status)" class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold" x-text="statusLabel(readItem.status)"></span>
+                  </div>
+                  <template x-if="readItem.rejectionReason">
+                    <div class="pt-2 border-t border-border dark:border-gray-700">
+                      <span class="text-text-muted dark:text-gray-500 text-xs block mb-1">Rejection Reason</span>
+                      <p class="text-red-600 dark:text-red-400 text-sm" x-text="readItem.rejectionReason"></p>
+                    </div>
+                  </template>
+                </div>
+                <!-- Note about full content -->
+                <div class="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-400">
+                  <div class="flex items-start gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span>Full article content is available on the article detail page. This preview shows the article excerpt and metadata for editorial review purposes.</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-between p-5 border-t border-border dark:border-gray-800 shrink-0">
+            <button @click="showReadModal = false" class="px-4 py-2 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-sm font-semibold rounded-xl transition-colors">
+              Close
+            </button>
+            <template x-if="readItem && readItem.status === 'in_review'">
+              <div class="flex gap-2">
+                <button @click="approve(readItem.id); showReadModal = false;" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                  Approve
+                </button>
+                <button @click="openRejectModal(readItem.id); showReadModal = false;" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors">
+                  Reject
+                </button>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -237,8 +337,10 @@ const queue = getEditorialQueue();
         search: '',
         activeFilter: 'all',
         showRejectModal: false,
+        showReadModal: false,
         rejectReason: '',
         rejectTargetId: null,
+        readItem: null,
         toast: { show: false, message: '', type: 'success' },
         toastTimer: null,
 
@@ -259,6 +361,11 @@ const queue = getEditorialQueue();
             );
           }
           return items;
+        },
+
+        openReadModal(id) {
+          this.readItem = this.queue.find(i => i.id === id) || null;
+          this.showReadModal = true;
         },
 
         submitForReview(id) {

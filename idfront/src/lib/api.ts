@@ -316,6 +316,21 @@ export async function apiLogout(token: string): Promise<void> {
   });
 }
 
+// ---- Newsletter API Functions ----
+
+export async function apiNewsletterSubscribe(email: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/newsletter/subscribe/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Newsletter subscription failed: ${response.status}`);
+  }
+  return response.json() as Promise<{ message: string }>;
+}
+
 // ---- Helper: Check if API is reachable ----
 
 export async function isApiAvailable(): Promise<boolean> {

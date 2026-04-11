@@ -2,12 +2,11 @@
 /**
  * SubscribeCTA.astro
  * Subscription plan pricing cards with highlighted recommendation.
+ * Clicking "Subscribe Now" on paid plans opens a payment gateway modal.
+ * "Get Started Free" for free plan triggers free signup.
  *
  * Props:
  *   plans: SubscriptionPlan[]
- *
- * Renders a responsive grid of plan cards. Highlighted plans receive
- * an accent ring and a "Recommended" badge.
  */
 
 import type { SubscriptionPlan } from '@data/types';
@@ -32,7 +31,7 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
 }
 ---
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" x-data="subscribeModal()">
   {plans.map((plan) => (
     <div
       class:list={[
@@ -78,17 +77,26 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
         ))}
       </ul>
 
-      <a
-        href="/subscribe"
-        class:list={[
-          'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
-          plan.highlighted
-            ? 'bg-accent hover:bg-sky-600 text-white shadow-md'
-            : 'border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800',
-        ]}
-      >
-        {plan.price === 0 ? 'Get Started Free' : 'Subscribe Now'}
-      </a>
+      {plan.price === 0 ? (
+        <a
+          href="/auth/login"
+          class="block w-full py-3 text-center font-semibold rounded-lg transition-colors border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800"
+        >
+          Get Started Free
+        </a>
+      ) : (
+        <button
+          @click={`openModal('${plan.id}', '${plan.name}', ${plan.price}, '${plan.interval}')`}
+          class:list={[
+            'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
+            plan.highlighted
+              ? 'bg-accent hover:bg-sky-600 text-white shadow-md'
+              : 'border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800',
+          ]}
+        >
+          Subscribe Now
+        </button>
+      )}
     </div>
   ))}
 </div>
