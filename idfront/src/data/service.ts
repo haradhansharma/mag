@@ -87,8 +87,22 @@ function resolveMediaUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   // /media/ path from Django — prepend API base
   if (path.startsWith('/media/')) return `${API_BASE}${path}`;
-  // Relative path from frontend dummy data (e.g. /images/x.png) — keep as-is for Astro
+  // Relative path from frontend dummy data (e.g. /images/x.png)
+  // Return as-is — these are local dev placeholders served by Astro
   return path;
+}
+
+/** SVG placeholder data URI for missing images */
+const PLACEHOLDER_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' fill='none'%3E%3Crect width='800' height='450' fill='%231e293b'/%3E%3Ctext x='400' y='225' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='16' fill='%2394a3b8'%3EMERIDIAN — Image Placeholder%3C/text%3E%3C/svg%3E`;
+
+/** For dummy data fallback: return a local path, but if it's a /images/ path
+ *  that likely doesn't exist, use a data-URI placeholder instead. */
+function resolveDummyImageUrl(path: string): string {
+  if (!path) return PLACEHOLDER_SVG;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // Dummy data paths like /images/article-quantum.png don't exist on disk.
+  // Use the placeholder so images don't show broken in development.
+  return PLACEHOLDER_SVG;
 }
 
 // ========================
@@ -311,12 +325,13 @@ function withCategory(article: Article): Article {
   return { ...article, category: dummyCategories.find(c => c.id === article.categoryId) };
 }
 function withRelations(article: Article): Article {
-  return withCategory(withAuthor(article));
+  return { ...withCategory(withAuthor(article)), coverImage: resolveDummyImageUrl(article.coverImage), author: { ...withCategory(withAuthor(article)).author, avatar: resolveDummyImageUrl(withCategory(withAuthor(article)).author?.avatar || '') } };
 }
 function withArticles(edition: Edition): Edition {
   const editionArticles = dummyArticles.filter(a => edition.articleIds.includes(a.id)).map(withRelations);
   return {
     ...edition,
+    coverImage: resolveDummyImageUrl(edition.coverImage),
     articles: editionArticles,
     articleCount: editionArticles.length,
     featuredArticle: editionArticles.find(a => a.id === edition.featuredArticleId),

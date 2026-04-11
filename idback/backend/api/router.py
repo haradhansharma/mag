@@ -84,6 +84,7 @@ from api.schemas import (
     UserRegister,
     VerifyEmail,
 )
+from pydantic import BaseModel
 from ninja.errors import HttpError
 
 User = get_user_model()

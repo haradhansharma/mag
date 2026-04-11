@@ -162,5 +162,10 @@ import Footer from '@components/layout/Footer.astro';
     <style>
       [x-cloak] { display: none !important; }
     </style>
+
+    <!-- Inject server-side env vars for client-side Alpine scripts -->
+    <script is:inline define:vars={{ apiBaseUrl: import.meta.env.PUBLIC_API_URL || 'http://localhost:8085/api/v1' }}>
+      window.__MERIDIAN_API_URL__ = apiBaseUrl;
+    </script>
   </body>
 </html>

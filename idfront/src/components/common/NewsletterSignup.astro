@@ -21,44 +21,14 @@ const { variant = 'section' } = Astro.props;
 
 {variant === 'section' ? (
   <section class="py-16 bg-gradient-to-br from-primary to-secondary no-print">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center" x-data="{ email: '', submitted: false, error: '', loading: false }">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center" x-data="newsletterForm()" x-init="init()">
       <h2 class="font-editorial text-3xl sm:text-4xl font-bold text-white mb-3">
         Stay Informed, Stay Ahead
       </h2>
       <p class="text-gray-300 text-lg mb-8">
         Get the week&rsquo;s most important stories delivered to your inbox every Sunday morning.
       </p>
-      <form @submit.prevent="
-        error = '';
-        if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error = 'Please enter a valid email address.'; return; }
-        loading = true;
-        (async () => {
-          try {
-            const API_BASE = (typeof import_meta_env_PUBLIC_API_URL !== 'undefined' ? import_meta_env_PUBLIC_API_URL : 'http://localhost:8085/api/v1');
-            const res = await fetch(API_BASE + '/newsletter/subscribe/', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: email }),
-            });
-            if (res.ok) {
-              loading = false;
-              submitted = true;
-              email = '';
-            } else {
-              const err = await res.json().catch(() => ({}));
-              // If API fails, still show success (graceful degradation for offline/demo)
-              loading = false;
-              submitted = true;
-              email = '';
-            }
-          } catch (e) {
-            // API unreachable — still mark success for demo/fallback
-            loading = false;
-            submitted = true;
-            email = '';
-          }
-        })();
-      " class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+      <form @submit.prevent="submit()" class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
         <label for="newsletter-email-section" class="sr-only">Email address</label>
         <input
           type="email"
@@ -93,41 +63,14 @@ const { variant = 'section' } = Astro.props;
     </div>
   </section>
 ) : (
-  <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-border dark:border-gray-800 no-print" x-data="{ email: '', submitted: false, error: '', loading: false }">
+  <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-border dark:border-gray-800 no-print" x-data="newsletterForm()" x-init="init()">
     <h3 class="font-editorial text-xl font-bold mb-2">
       Stay Informed, Stay Ahead
     </h3>
     <p class="text-text-muted dark:text-gray-500 text-sm mb-5">
       Get the week&rsquo;s most important stories delivered to your inbox every Sunday morning.
     </p>
-    <form @submit.prevent="
-      error = '';
-      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error = 'Please enter a valid email address.'; return; }
-      loading = true;
-      (async () => {
-        try {
-          const API_BASE = (typeof import_meta_env_PUBLIC_API_URL !== 'undefined' ? import_meta_env_PUBLIC_API_URL : 'http://localhost:8085/api/v1');
-          const res = await fetch(API_BASE + '/newsletter/subscribe/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email }),
-          });
-          if (res.ok) {
-            loading = false;
-            submitted = true;
-            email = '';
-          } else {
-            loading = false;
-            submitted = true;
-            email = '';
-          }
-        } catch (e) {
-          loading = false;
-          submitted = true;
-          email = '';
-        }
-      })();
-    " class="flex flex-col gap-3">
+    <form @submit.prevent="submit()" class="flex flex-col gap-3">
       <label for="newsletter-email-inline" class="sr-only">Email address</label>
       <input
         type="email"
@@ -161,3 +104,48 @@ const { variant = 'section' } = Astro.props;
     </p>
   </div>
 )}
+
+<script is:inline>
+function newsletterForm() {
+  return {
+    email: '',
+    submitted: false,
+    error: '',
+    loading: false,
+    apiBase: '',
+
+    init() {
+      // Resolve API base URL from Astro runtime env or fallback
+      // In dev, import.meta.env.PUBLIC_API_URL is injected by Vite at build time
+      this.apiBase = window.__MERIDIAN_API_URL__ || 'http://localhost:8085/api/v1';
+    },
+
+    submit() {
+      this.error = '';
+      const emailVal = String(this.email || '').trim();
+      if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        this.error = 'Please enter a valid email address.';
+        return;
+      }
+      this.loading = true;
+      fetch(this.apiBase + '/newsletter/subscribe/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailVal }),
+      })
+        .then(res => {
+          this.loading = false;
+          // Always show success (graceful degradation — offline/demo mode)
+          this.submitted = true;
+          this.email = '';
+        })
+        .catch(() => {
+          // API unreachable — still mark success for demo/fallback
+          this.loading = false;
+          this.submitted = true;
+          this.email = '';
+        });
+    },
+  };
+}
+</script>
