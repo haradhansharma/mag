@@ -353,6 +353,14 @@ export async function getSiteConfig(): Promise<SiteConfig> {
 }
 
 function transformSiteConfig(c: ApiSiteConfigOut): SiteConfig {
+  // Use ?.length check instead of || because an empty array [] is truthy in JS,
+  // causing the API to "win" over dummy data even when it returns nothing.
+  const navLinksSource = c.nav_links?.length ? c.nav_links : dummySiteConfig.navLinks;
+  const footerLinksSource = c.footer_links?.length ? c.footer_links : dummySiteConfig.footerLinks;
+  const socialLinksSource = c.social_links?.length ? c.social_links : dummySiteConfig.socialLinks;
+  const gatewaySource = c.payment_gateways?.length ? c.payment_gateways : dummySiteConfig.paymentGateways;
+  const plansSource = c.subscription_plans?.length ? c.subscription_plans.map(transformPlan) : dummySiteConfig.subscriptionPlans;
+
   return {
     name: c.name || dummySiteConfig.name,
     tagline: c.tagline || dummySiteConfig.tagline,
@@ -363,21 +371,21 @@ function transformSiteConfig(c: ApiSiteConfigOut): SiteConfig {
     favicon: dummySiteConfig.favicon,
     language: dummySiteConfig.language,
     termsOfServiceUrl: c.terms_of_service_url || dummySiteConfig.termsOfServiceUrl,
-    navLinks: (c.nav_links || dummySiteConfig.navLinks).map(l => ({
+    navLinks: navLinksSource.map(l => ({
       label: l.label,
       href: l.href,
       ...(l.access ? { access: l.access as 'premium' | 'public' } : {}),
     })),
-    footerLinks: (c.footer_links || dummySiteConfig.footerLinks).map(l => ({
+    footerLinks: footerLinksSource.map(l => ({
       label: l.label,
       href: l.href,
     })),
-    socialLinks: (c.social_links || dummySiteConfig.socialLinks).map(s => ({
+    socialLinks: socialLinksSource.map(s => ({
       platform: s.platform,
       url: s.url,
       label: s.label,
     })),
-    paymentGateways: (c.payment_gateways || dummySiteConfig.paymentGateways).map(g => ({
+    paymentGateways: gatewaySource.map(g => ({
       id: g.id,
       name: g.name,
       description: g.description,
@@ -385,7 +393,7 @@ function transformSiteConfig(c: ApiSiteConfigOut): SiteConfig {
       paymentLink: g.payment_link,
       enabled: g.enabled,
     })),
-    subscriptionPlans: (c.subscription_plans || []).map(transformPlan),
+    subscriptionPlans: plansSource,
   };
 }
 

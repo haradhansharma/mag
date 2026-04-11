@@ -3,13 +3,14 @@
 // Alpine.js hamburger toggle with slide-down animation.
 // Shows all navigation links + extra pages (Editions, Subscribe, Print).
 // Only visible on mobile (lg:hidden).
+// IMPORTANT: This component inherits x-data="{ mobileMenu: false }" from
+// the parent <nav> in Header.astro — do NOT add x-data here.
 import { getSiteConfig } from '@data/service';
 
 const { navLinks } = await getSiteConfig();
 ---
 
 <div
-  x-data="{ mobileMenu: false }"
   x-show="mobileMenu"
   x-transition:enter="transition ease-out duration-200"
   x-transition:enter-start="opacity-0 -translate-y-2"

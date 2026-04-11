@@ -9,7 +9,11 @@ import DarkModeToggle from './DarkModeToggle.astro';
 import MobileMenu from './MobileMenu.astro';
 ---
 
-<nav aria-label="Main navigation" class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border dark:bg-primary/95 dark:border-gray-800">
+<nav
+  x-data="{ mobileMenu: false }"
+  aria-label="Main navigation"
+  class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border dark:bg-primary/95 dark:border-gray-800"
+>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
 
@@ -54,10 +58,9 @@ import MobileMenu from './MobileMenu.astro';
           Subscribe
         </a>
 
-        <!-- Mobile Menu Toggle Button -->
+        <!-- Mobile Menu Toggle Button (shares x-data with nav) -->
         <button
-          x-data="{ mobileMenu: false }"
-          @click="mobileMenu = !mobileMenu; $dispatch('toggle-mobile-menu', { open: mobileMenu })"
+          @click="mobileMenu = !mobileMenu"
           class="lg:hidden touch-target p-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors rounded-lg"
           aria-label="Toggle menu"
           aria-controls="mobile-menu-panel"
@@ -73,7 +76,7 @@ import MobileMenu from './MobileMenu.astro';
       </div>
     </div>
 
-    <!-- Mobile Menu Panel -->
+    <!-- Mobile Menu Panel (shares x-data with nav) -->
     <div id="mobile-menu-panel">
       <MobileMenu />
     </div>

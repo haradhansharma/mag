@@ -49,6 +49,7 @@ const faqItems = [
 ];
 
 // Serialize gateway data for Alpine.js
+// Serialize gateway data for Alpine.js
 const gatewaysJson = JSON.stringify(enabledGateways.map(g => ({
   id: g.id,
   name: g.name,
@@ -56,6 +57,15 @@ const gatewaysJson = JSON.stringify(enabledGateways.map(g => ({
   icon: g.icon,
   paymentLink: g.paymentLink,
 })));
+
+// Serialize plans for auto-open from URL param
+const plansJson = JSON.stringify(plans.map(p => ({
+  id: p.id,
+  name: p.name,
+  price: p.price,
+  interval: p.interval,
+})));
+
 ---
 
 <BaseLayout title={title} description={description} canonicalUrl="/subscribe">
@@ -158,10 +168,10 @@ const gatewaysJson = JSON.stringify(enabledGateways.map(g => ({
 
   <!-- ==================== Payment Gateway Modal (global) ==================== -->
   <div
-    x-data={`subscribeModal(${gatewaysJson})`}
-    @open-subscribe-modal.window="openModal($event.detail.planId, $event.detail.planName, $event.detail.planPrice, $event.detail.planInterval)"
+    x-data={`subscribeModal(${gatewaysJson}, ${plansJson})`}
     x-show="showPaymentModal"
     x-cloak
+    x-init="init()"
     class="fixed inset-0 z-50 flex items-center justify-center p-4"
     @keydown.escape.window="showPaymentModal = false"
   >
@@ -269,9 +279,10 @@ const gatewaysJson = JSON.stringify(enabledGateways.map(g => ({
 
   <!-- Shared Alpine.js Subscribe Modal Component -->
   <script is:inline>
-    function subscribeModal(gatewaysData) {
+    function subscribeModal(gatewaysData, plansData) {
       return {
         gateways: gatewaysData || [],
+        plans: plansData || [],
         showPaymentModal: false,
         selectedGateway: '',
         tocConsent: false,
@@ -279,6 +290,26 @@ const gatewaysJson = JSON.stringify(enabledGateways.map(g => ({
         selectedPlanName: '',
         selectedPlanPrice: 0,
         selectedPlanInterval: 'monthly',
+
+        init() {
+          // Auto-open modal if ?plan=xxx is in the URL
+          const params = new URLSearchParams(window.location.search);
+          const planId = params.get('plan');
+          if (planId) {
+            const plan = this.plans.find(p => p.id === planId);
+            if (plan) {
+              this.openModal(plan.id, plan.name, plan.price, plan.interval);
+              // Clean up URL without page reload
+              window.history.replaceState({}, '', window.location.pathname);
+            }
+          }
+
+          // Listen for open-subscribe-modal events (from SubscribeCTA buttons)
+          window.addEventListener('open-subscribe-modal', (e) => {
+            const d = e.detail || {};
+            this.openModal(d.planId, d.planName, d.planPrice, d.planInterval);
+          });
+        },
 
         openModal(planId, planName, price, interval) {
           this.selectedPlanId = planId;

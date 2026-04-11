@@ -317,8 +317,10 @@ const API_BASE = 'http://localhost:8085/api/v1';
             }));
             this.success = true;
             // Redirect after short delay
+            // Redirect to original page after login, or home if none specified
+            const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/';
             setTimeout(() => {
-              window.location.href = '/';
+              window.location.href = redirectUrl;
             }, 1500);
           } catch (e) {
             this.error = e.message;
@@ -356,8 +358,9 @@ const API_BASE = 'http://localhost:8085/api/v1';
               role: data.role,
             }));
             this.success = true;
+            const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/';
             setTimeout(() => {
-              window.location.href = '/';
+              window.location.href = redirectUrl;
             }, 1500);
           } catch (e) {
             this.error = e.message;

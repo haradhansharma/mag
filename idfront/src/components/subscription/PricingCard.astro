@@ -155,20 +155,53 @@ const monthlyEquivalent = (annualPrice / 12).toFixed(2);
     ))}
   </ul>
 
-  <!-- CTA button -->
-  <a
-    href="/subscribe"
-    class:list={[
-      'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
-      isPopular
-        ? 'bg-accent hover:bg-sky-600 text-white shadow-md'
-        : 'border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800',
-    ]}
-  >
-    {isPopular
-      ? 'Start Free Trial'
-      : isFreePlan
-        ? 'Get Started'
-        : 'Subscribe Now'}
-  </a>
+  <!-- CTA button — login-aware routing -->
+  {isFreePlan ? (
+    <a
+      href="/auth/register"
+      class:list={[
+        'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
+        'border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800',
+      ]}
+    >
+      Get Started
+    </a>
+  ) : (
+    <button
+      data-plan-id={plan.id}
+      data-plan-name={plan.name}
+      data-plan-price={String(plan.price)}
+      data-plan-interval={plan.interval}
+      @click="handlePricingCardClick(this)"
+      class:list={[
+        'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
+        isPopular
+          ? 'bg-accent hover:bg-sky-600 text-white shadow-md'
+          : 'border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800',
+      ]}
+    >
+      {isPopular ? 'Start Free Trial' : 'Subscribe Now'}
+    </button>
+  )}
 </div>
+
+<script is:inline>
+function handlePricingCardClick(btn) {
+  const user = JSON.parse(localStorage.getItem('meridian_user') || 'null');
+  const planId = btn.dataset.planId;
+  const planName = btn.dataset.planName;
+  const planPrice = parseFloat(btn.dataset.planPrice);
+  const planInterval = btn.dataset.planInterval;
+
+  if (!user) {
+    // Not logged in — redirect to login with return URL to pricing page
+    const redirect = encodeURIComponent('/subscribe/pricing');
+    window.location.href = '/auth/login?redirect=' + redirect;
+    return;
+  }
+
+  // Logged in — navigate to /subscribe with plan query param to auto-open modal
+  const params = new URLSearchParams({ plan: planId });
+  window.location.href = '/subscribe?' + params.toString();
+}
+</script>

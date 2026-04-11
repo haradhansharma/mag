@@ -32,7 +32,7 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
 }
 ---
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" x-data>
   {plans.map((plan) => (
     <div
       class:list={[
@@ -87,7 +87,11 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
         </a>
       ) : (
         <button
-          @click="$dispatch('open-subscribe-modal', { planId: '{plan.id}', planName: `{plan.name}`, planPrice: {plan.price}, planInterval: '{plan.interval}' })"
+          data-plan-id={plan.id}
+          data-plan-name={plan.name}
+          data-plan-price={String(plan.price)}
+          data-plan-interval={plan.interval}
+          @click="handleSubscribeClick(this)"
           class:list={[
             'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
             plan.highlighted
@@ -101,3 +105,23 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
     </div>
   ))}
 </div>
+
+<script is:inline>
+function handleSubscribeClick(btn) {
+  const user = JSON.parse(localStorage.getItem('meridian_user') || 'null');
+  if (!user) {
+    // Not logged in — redirect to login with return URL
+    const redirect = encodeURIComponent(window.location.pathname);
+    window.location.href = '/auth/login?redirect=' + redirect;
+    return;
+  }
+  // Logged in — dispatch event to open the payment modal
+  const detail = {
+    planId: btn.dataset.planId,
+    planName: btn.dataset.planName,
+    planPrice: parseFloat(btn.dataset.planPrice),
+    planInterval: btn.dataset.planInterval,
+  };
+  window.dispatchEvent(new CustomEvent('open-subscribe-modal', { detail: detail }));
+}
+</script>
