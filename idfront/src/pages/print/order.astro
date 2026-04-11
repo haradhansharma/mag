@@ -671,9 +671,26 @@ function printOrder(editionsData, gatewaysData) {
     proceedToPayment() {
       if (!this.tocConsent || !this.selectedGateway) return;
       const gateway = this.gateways.find(g => g.id === this.selectedGateway);
-      if (gateway && gateway.paymentLink) {
-        window.open(gateway.paymentLink, '_blank', 'noopener');
+      if (!gateway) {
+        alert('No payment gateway selected. Please select a payment method.');
+        return;
+      }
+
+      // Use configured paymentLink, or fall back to default URLs per gateway
+      let paymentUrl = gateway.paymentLink;
+      if (!paymentUrl) {
+        const fallbacks = {
+          stripe: 'https://buy.stripe.com/placeholder_print_order',
+          paypal: 'https://www.paypal.com/ncp/payment/placeholder_print_order',
+        };
+        paymentUrl = fallbacks[gateway.id] || fallbacks[gateway.icon] || '';
+      }
+
+      if (paymentUrl) {
+        window.open(paymentUrl, '_blank', 'noopener,noreferrer');
         this.showPaymentModal = false;
+      } else {
+        alert('Payment link is not configured for ' + gateway.name + '. Please contact support or try another payment method.');
       }
     },
   };

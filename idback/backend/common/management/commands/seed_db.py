@@ -23,7 +23,7 @@ from common.models import (
     Category,
     Edition,
     PrintOrder,
-    SiteConfiguration,
+    SiteConfig as SiteConfiguration,
 )
 from users.models import (
     AuthToken,
