@@ -13,7 +13,7 @@ import NewsletterSignup from '@components/common/NewsletterSignup.astro';
 import { getSiteConfig } from '@data/service';
 
 // Get subscription plans from site config
-const { subscriptionPlans: plans } = getSiteConfig();
+const { subscriptionPlans: plans } = await getSiteConfig();
 
 // The 3 main plans for individual card display
 const mainPlans = plans.filter(p => ['plan-free', 'plan-premium', 'plan-print'].includes(p.id));

@@ -265,6 +265,7 @@ class EditionBrief(BaseModel):
     week_start: Optional[date] = None
     week_end: Optional[date] = None
     article_count: int = 0
+    print_ready: bool = False
 
     class Config:
         from_attributes = True
@@ -528,3 +529,43 @@ class HomepageData(BaseModel):
     pinned_articles: List[ArticleBrief] = []
     latest_edition: Optional[EditionBrief] = None
     categories: List[CategoryBrief] = []
+
+
+# ============================================================
+# Site Configuration
+# ============================================================
+
+
+class NavLinkOut(BaseModel):
+    label: str = ""
+    href: str = ""
+    access: str = ""
+
+
+class SocialLinkOut(BaseModel):
+    platform: str = ""
+    url: str = ""
+    label: str = ""
+
+
+class PaymentGatewayOut(BaseModel):
+    id: str = ""
+    name: str = ""
+    description: str = ""
+    icon: str = ""
+    payment_link: str = ""
+    enabled: bool = True
+
+
+class SiteConfigOut(BaseModel):
+    name: str = "MERIDIAN"
+    tagline: str = "Your World, Synthesized"
+    description: str = ""
+    url: str = ""
+    terms_of_service_url: str = "/terms"
+    nav_links: List[NavLinkOut] = []
+    footer_links: List[NavLinkOut] = []
+    social_links: List[SocialLinkOut] = []
+    payment_gateways: List[PaymentGatewayOut] = []
+    subscription_plans: List[SubscriptionPlanOut] = []
+    print_pricing: Optional[PrintPricingOut] = None

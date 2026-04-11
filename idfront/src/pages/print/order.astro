@@ -15,7 +15,7 @@ import { formatEditionDateRange } from '@utils/helpers';
 
 const allEditions = await getAllEditions();
 const printReadyEditions = allEditions.filter(e => e.printReady);
-const { paymentGateways = [], termsOfServiceUrl = '/terms' } = getSiteConfig();
+const { paymentGateways = [], termsOfServiceUrl = '/terms' } = await getSiteConfig();
 const enabledGateways = paymentGateways.filter(g => g.enabled);
 
 // Serialize data for Alpine.js (client-side script can't use Astro expressions)

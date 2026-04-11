@@ -5,7 +5,7 @@
 // Hidden on mobile (mobile uses MobileMenu instead).
 import { getSiteConfig } from '@data/service';
 
-const { navLinks } = getSiteConfig();
+const { navLinks } = await getSiteConfig();
 ---
 
 <div class="hidden lg:flex items-center gap-1">

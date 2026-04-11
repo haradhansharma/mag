@@ -1,9 +1,13 @@
 """
 Seed command that parses the Astro frontend .ts dummy data files
 and populates the Django database.
+
+Also copies frontend placeholder images into Django MEDIA_ROOT so they
+are served by Django at MEDIA_URL (e.g. /media/articles/...).
 """
 
 import re
+import shutil
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -19,6 +23,7 @@ from common.models import (
     Category,
     Edition,
     PrintOrder,
+    SiteConfiguration,
 )
 from users.models import (
     AuthToken,
@@ -34,8 +39,113 @@ User = get_user_model()
 # Docker: /app/seed_data (symlink from backend/seed_data -> idfront/src/data/dummy)
 # The symlink should be created on the host:
 #   ln -s ../../idfront/src/data/dummy backend/seed_data
-# DUMMY_DIR = Path(__file__).resolve().parents[2] / "seed_data"
-DUMMY_DIR = Path(__file__).resolve().parents[3] / "seed_data"
+DUMMY_DIR = Path(__file__).resolve().parents[2] / "seed_data"
+
+# Source images directory — where Astro's public/images live.
+# Docker: /app/frontend_images  (mounted via docker-compose volume)
+# Local:  looks for  ../../idfront/public/images  relative to backend/
+FRONTEND_IMAGES_DIR = Path(
+    getattr(settings, "FRONTEND_IMAGES_DIR", None)
+    or Path(__file__).resolve().parents[2] / "frontend_images"
+)
+
+
+# ============================================================
+# Image Path Transformers & File Copier
+# ============================================================
+# Django ImageField stores relative paths within MEDIA_ROOT.
+# The API returns  settings.MEDIA_URL + field.name  (e.g. /media/articles/x.png)
+# These functions convert frontend-style paths to Django upload_to paths.
+
+
+def _to_article_image(frontend_path: str) -> str:
+    """Convert /images/article-startup.png -> articles/article-startup.png"""
+    if not frontend_path:
+        return ""
+    filename = Path(frontend_path).name
+    return f"articles/{filename}"
+
+
+def _to_avatar_image(frontend_path: str) -> str:
+    """Convert /images/avatars/sarah-chen.jpg -> avatars/sarah-chen.jpg"""
+    if not frontend_path:
+        return ""
+    filename = Path(frontend_path).name
+    return f"avatars/{filename}"
+
+
+def _to_edition_image(frontend_path: str) -> str:
+    """Convert /images/edition-cover-ocean.png -> editions/edition-cover-ocean.png"""
+    if not frontend_path:
+        return ""
+    filename = Path(frontend_path).name
+    return f"editions/{filename}"
+
+
+def _copy_media_file(frontend_path: str, target_subdir: str) -> None:
+    """Copy a single image from frontend public/images to MEDIA_ROOT/<target_subdir>.
+
+    frontend_path: e.g. "/images/article-ocean.png" or "/images/avatars/sarah-chen.jpg"
+    target_subdir: e.g. "articles", "avatars", "editions"
+    """
+    if not frontend_path:
+        return
+    # Strip leading /images/ and get the relative part (e.g. "article-ocean.png" or "avatars/sarah-chen.jpg")
+    cleaned = frontend_path.lstrip("/")
+    if cleaned.startswith("images/"):
+        cleaned = cleaned[len("images/"):]  # e.g. "article-ocean.png" or "avatars/sarah-chen.jpg"
+
+    src = FRONTEND_IMAGES_DIR / cleaned
+    if not src.exists():
+        return
+
+    dest_dir = Path(settings.MEDIA_ROOT) / target_subdir
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / src.name
+    shutil.copy2(src, dest)
+
+
+def _copy_all_media_files() -> int:
+    """Copy ALL images from frontend_images into Django MEDIA_ROOT subdirs.
+
+    Layout in frontend_images/:
+        article-*.png       -> MEDIA_ROOT/articles/
+        avatars/*.jpg       -> MEDIA_ROOT/avatars/
+        edition-cover-*.png -> MEDIA_ROOT/editions/
+
+    Returns the number of files copied.
+    """
+    if not FRONTEND_IMAGES_DIR.exists():
+        return 0
+
+    copied = 0
+    for f in FRONTEND_IMAGES_DIR.iterdir():
+        if not f.is_file():
+            continue
+        # article images
+        if f.name.startswith("article-") and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+            dest = Path(settings.MEDIA_ROOT) / "articles" / f.name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dest)
+            copied += 1
+        # edition cover images
+        elif f.name.startswith("edition-cover-") and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+            dest = Path(settings.MEDIA_ROOT) / "editions" / f.name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dest)
+            copied += 1
+
+    # avatars are in a subdirectory
+    avatars_dir = FRONTEND_IMAGES_DIR / "avatars"
+    if avatars_dir.exists():
+        for f in avatars_dir.iterdir():
+            if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                dest = Path(settings.MEDIA_ROOT) / "avatars" / f.name
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, dest)
+                copied += 1
+
+    return copied
 
 
 def _read_file(filepath):
@@ -166,12 +276,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Seeding database...\n")
 
+        # Step 0: Copy media files so Django can serve them
+        self._copy_media()
+
         self._seed_users()
         self._seed_categories()
         self._seed_authors()
         self._seed_editions()
         self._seed_articles()
         self._seed_plans()
+        self._seed_site_config()
         self._seed_editorial_activity()
 
         self.stdout.write(self.style.SUCCESS("\nDatabase seeded successfully!"))
@@ -179,6 +293,24 @@ class Command(BaseCommand):
         self.stdout.write("  Admin:   admin@meridian.com / admin123")
         self.stdout.write("  Editor:  editor@meridian.com / editor123")
         self.stdout.write("  Writer:  writer@meridian.com / writer123")
+
+    def _copy_media(self):
+        """Copy frontend placeholder images into Django MEDIA_ROOT."""
+        self.stdout.write("Copying media files...")
+        count = _copy_all_media_files()
+        if count:
+            self.stdout.write(f"  Copied {count} image(s) to MEDIA_ROOT")
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  No images copied. Source directory not found: {FRONTEND_IMAGES_DIR}"
+                )
+            )
+            self.stdout.write(
+                "  Hint: Mount frontend images in docker-compose.yml:\n"
+                '    volumes:\n'
+                '      - ../idfront/public/images:/app/frontend_images:ro'
+            )
 
     def _seed_users(self):
         self.stdout.write("Creating users...")
@@ -264,12 +396,14 @@ class Command(BaseCommand):
             if not slug:
                 continue
             socials = _extract_nested_object(obj, "socials")
+            raw_avatar = _extract_string(obj, "avatar")
+            _copy_media_file(raw_avatar, "avatars")
             Author.objects.update_or_create(
                 slug=slug,
                 defaults={
                     "name": _extract_string(obj, "name"),
                     "bio": _extract_string(obj, "bio"),
-                    "avatar": _extract_string(obj, "avatar"),
+                    "avatar": _to_avatar_image(raw_avatar),
                     "role": _extract_string(obj, "role"),
                     "twitter": socials.get("twitter", ""),
                     "linkedin": socials.get("linkedin", ""),
@@ -307,13 +441,15 @@ class Command(BaseCommand):
             pub_date = parse_datetime(pub_str) if pub_str else None
             ws = _extract_string(obj, "weekStart")
             we = _extract_string(obj, "weekEnd")
+            raw_cover = _extract_string(obj, "coverImage")
+            _copy_media_file(raw_cover, "editions")
             Edition.objects.update_or_create(
                 slug=slug,
                 defaults={
                     "number": int(number),
                     "title": _extract_string(obj, "title"),
                     "subtitle": _extract_string(obj, "subtitle"),
-                    "cover_image": _extract_string(obj, "coverImage"),
+                    "cover_image": _to_edition_image(raw_cover),
                     "status": _extract_string(obj, "status") or "draft",
                     "published_at": pub_date,
                     "week_start": parse_date(ws) if ws else None,
@@ -386,6 +522,9 @@ class Command(BaseCommand):
             trend = _extract_bool(obj, "trending")
             pin = _extract_bool(obj, "pinned")
 
+            raw_cover = _extract_string(obj, "coverImage")
+            _copy_media_file(raw_cover, "articles")
+
             article, created = Article.objects.update_or_create(
                 slug=slug,
                 defaults={
@@ -393,7 +532,7 @@ class Command(BaseCommand):
                     "subtitle": _extract_string(obj, "subtitle"),
                     "content": _extract_string(obj, "content"),
                     "excerpt": _extract_string(obj, "excerpt"),
-                    "cover_image": _extract_string(obj, "coverImage"),
+                    "cover_image": _to_article_image(raw_cover),
                     "cover_caption": _extract_string(obj, "coverCaption"),
                     "author": author,
                     "category": cat,
@@ -455,6 +594,84 @@ class Command(BaseCommand):
                 },
             )
         self.stdout.write(f"  Created {len(objects)} subscription plans")
+
+    def _seed_site_config(self):
+        """Populate the SiteConfiguration singleton from site-config.ts dummy data."""
+        self.stdout.write("Seeding site configuration...")
+        text = _read_file(DUMMY_DIR / "site-config.ts")
+        config = SiteConfiguration.get_instance()
+
+        # Parse nav_links
+        nav_match = re.search(r"navLinks:\s*\[([\s\S]*?)\n  \],", text)
+        if nav_match:
+            nav_text = nav_match.group(1)
+            nav_objects = _split_top_level_objects(nav_text)
+            config.nav_links = []
+            for obj in nav_objects:
+                link = {
+                    "label": _extract_string(obj, "label"),
+                    "href": _extract_string(obj, "href"),
+                }
+                access = _extract_string(obj, "access")
+                if access:
+                    link["access"] = access
+                config.nav_links.append(link)
+
+        # Parse footer_links
+        footer_match = re.search(r"footerLinks:\s*\[([\s\S]*?)\n  \],", text)
+        if footer_match:
+            footer_text = footer_match.group(1)
+            footer_objects = _split_top_level_objects(footer_text)
+            config.footer_links = []
+            for obj in footer_objects:
+                link = {
+                    "label": _extract_string(obj, "label"),
+                    "href": _extract_string(obj, "href"),
+                }
+                config.footer_links.append(link)
+
+        # Parse social_links
+        social_match = re.search(r"socialLinks:\s*\[([\s\S]*?)\n  \],", text)
+        if social_match:
+            social_text = social_match.group(1)
+            social_objects = _split_top_level_objects(social_text)
+            config.social_links = []
+            for obj in social_objects:
+                config.social_links.append({
+                    "platform": _extract_string(obj, "platform"),
+                    "url": _extract_string(obj, "url"),
+                    "label": _extract_string(obj, "label"),
+                })
+
+        # Parse payment_gateways
+        gw_match = re.search(r"paymentGateways:\s*\[([\s\S]*?)\n  \],", text)
+        if gw_match:
+            gw_text = gw_match.group(1)
+            gw_objects = _split_top_level_objects(gw_text)
+            config.payment_gateways = []
+            for obj in gw_objects:
+                enabled = _extract_bool(obj, "enabled")
+                config.payment_gateways.append({
+                    "id": _extract_string(obj, "id"),
+                    "name": _extract_string(obj, "name"),
+                    "description": _extract_string(obj, "description"),
+                    "icon": _extract_string(obj, "icon"),
+                    "paymentLink": _extract_string(obj, "paymentLink"),
+                    "enabled": enabled if enabled != "" else True,
+                })
+
+        config.site_name = _extract_string(text, "name") or "MERIDIAN"
+        config.tagline = _extract_string(text, "tagline") or ""
+        config.description = _extract_string(text, "description") or ""
+        config.url = _extract_string(text, "url") or "https://meridian-mag.com"
+        config.logo = _extract_string(text, "logo") or "/logo.svg"
+        config.og_default_image = _extract_string(text, "ogDefaultImage") or "/og-default.svg"
+        config.favicon = _extract_string(text, "favicon") or "/favicon.svg"
+        config.language = _extract_string(text, "language") or "en"
+        config.terms_of_service_url = _extract_string(text, "termsOfServiceUrl") or "/terms"
+        config.save()
+
+        self.stdout.write("  Site configuration seeded")
 
     def _seed_editorial_activity(self):
         self.stdout.write("Creating editorial activity...")

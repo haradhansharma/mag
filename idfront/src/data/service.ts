@@ -36,6 +36,7 @@ import {
   fetchSearchResults,
   fetchPlans,
   fetchPrintPricing,
+  fetchSiteConfig,
   type ApiArticleBrief,
   type ApiArticleOut,
   type ApiCategoryOut,
@@ -45,6 +46,7 @@ import {
   type ApiSubscriptionPlanOut,
   type ApiHomepageData,
   type ApiPaginatedResponse,
+  type ApiSiteConfigOut,
 } from '../lib/api';
 
 import { authors as dummyAuthors } from './dummy/authors';
@@ -238,7 +240,7 @@ function transformEditionBrief(e: ApiEditionBrief): Edition {
     articleCount: e.article_count,
     featuredArticleId: undefined,
     featuredArticle: undefined,
-    printReady: false,
+    printReady: e.print_ready || false,
   };
 }
 
@@ -322,11 +324,54 @@ function withArticles(edition: Edition): Edition {
 }
 
 // ========================
-// Site Config
+// Site Config (async, API-first with dummy fallback)
 // ========================
 
-export function getSiteConfig(): SiteConfig {
+export async function getSiteConfig(): Promise<SiteConfig> {
+  if (await checkApi()) {
+    try {
+      const apiConfig = await fetchSiteConfig();
+      return transformSiteConfig(apiConfig);
+    } catch { /* fall through to dummy */ }
+  }
   return dummySiteConfig;
+}
+
+function transformSiteConfig(c: ApiSiteConfigOut): SiteConfig {
+  return {
+    name: c.name || dummySiteConfig.name,
+    tagline: c.tagline || dummySiteConfig.tagline,
+    description: c.description || dummySiteConfig.description,
+    url: c.url || dummySiteConfig.url,
+    logo: dummySiteConfig.logo,
+    ogDefaultImage: dummySiteConfig.ogDefaultImage,
+    favicon: dummySiteConfig.favicon,
+    language: dummySiteConfig.language,
+    termsOfServiceUrl: c.terms_of_service_url || dummySiteConfig.termsOfServiceUrl,
+    navLinks: (c.nav_links || dummySiteConfig.navLinks).map(l => ({
+      label: l.label,
+      href: l.href,
+      ...(l.access ? { access: l.access as 'premium' | 'public' } : {}),
+    })),
+    footerLinks: (c.footer_links || dummySiteConfig.footerLinks).map(l => ({
+      label: l.label,
+      href: l.href,
+    })),
+    socialLinks: (c.social_links || dummySiteConfig.socialLinks).map(s => ({
+      platform: s.platform,
+      url: s.url,
+      label: s.label,
+    })),
+    paymentGateways: (c.payment_gateways || dummySiteConfig.paymentGateways).map(g => ({
+      id: g.id,
+      name: g.name,
+      description: g.description,
+      icon: g.icon,
+      paymentLink: g.payment_link,
+      enabled: g.enabled,
+    })),
+    subscriptionPlans: (c.subscription_plans || []).map(transformPlan),
+  };
 }
 
 // ========================

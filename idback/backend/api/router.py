@@ -63,13 +63,17 @@ from api.schemas import (
     ForgotPassword,
     HomepageData,
     MessageOut,
+    NavLinkOut,
     PaginatedResponse,
+    PaymentGatewayOut,
     PrintOrderCreate,
     PrintOrderOut,
     PrintPricingOut,
     ResendVerification,
     ResetPassword,
     SearchFilters,
+    SiteConfigOut,
+    SocialLinkOut,
     SubscriptionCancel,
     SubscriptionCreate,
     SubscriptionOut,
@@ -186,6 +190,7 @@ def _build_edition_brief(edition: Edition) -> EditionBrief:
         week_start=edition.week_start,
         week_end=edition.week_end,
         article_count=edition.article_count,
+        print_ready=edition.print_ready,
     )
 
 
@@ -517,6 +522,123 @@ def get_homepage(request: HttpRequest):
             for c in categories
         ],
     )
+
+
+# --- Site Config (public, frontend reads this) ---
+
+
+@api.get("/site-config/", response=SiteConfigOut)
+def get_site_config(request: HttpRequest):
+    ss = _get_site_settings()
+    sc = ss.get_site_config()
+
+    # Nav links
+    nav_links = [
+        NavLinkOut(
+            label=link.get("label", ""),
+            href=link.get("href", ""),
+            access=link.get("access", ""),
+        )
+        for link in sc.get("nav_links", [])
+    ]
+
+    # Footer links
+    footer_links = [
+        NavLinkOut(
+            label=link.get("label", ""),
+            href=link.get("href", ""),
+        )
+        for link in sc.get("footer_links", [])
+    ]
+
+    # Social links
+    social_links = [
+        SocialLinkOut(
+            platform=s.get("platform", ""),
+            url=s.get("url", ""),
+            label=s.get("label", ""),
+        )
+        for s in sc.get("social_links", [])
+    ]
+
+    # Payment gateways
+    payment_gateways = [
+        PaymentGatewayOut(
+            id=g.get("id", ""),
+            name=g.get("name", ""),
+            description=g.get("description", ""),
+            icon=g.get("icon", ""),
+            payment_link=g.get("paymentLink", g.get("payment_link", "")),
+            enabled=g.get("enabled", True),
+        )
+        for g in sc.get("payment_gateways", [])
+    ]
+
+    # Subscription plans
+    plans = SubscriptionPlan.objects.filter(is_active=True).order_by("price")
+    subscription_plans = [
+        SubscriptionPlanOut(
+            id=p.id,
+            name=p.name,
+            plan_type=p.plan_type,
+            price=float(p.price),
+            currency=p.currency,
+            interval=p.interval,
+            features=p.features or [],
+            highlighted=p.highlighted,
+            print_included=p.print_included,
+            is_active=p.is_active,
+        )
+        for p in plans
+    ]
+
+    # Print pricing
+    pp = _get_print_pricing()
+    us = pp.get("us", {})
+    intl = pp.get("international", {})
+    print_pricing = PrintPricingOut(
+        unit_price_us=float(Decimal(str(us.get("unit", "12.99")))),
+        shipping_us=float(Decimal(str(us.get("shipping", "4.99")))),
+        unit_price_international=float(Decimal(str(intl.get("unit", "14.99")))),
+        shipping_international=float(Decimal(str(intl.get("shipping", "12.99")))),
+        bulk_discount_threshold=int(pp.get("bulk_threshold", 5)),
+        bulk_discount_percent=float(
+            Decimal(str(pp.get("bulk_discount_percent", "10.0")))
+        ),
+        currency=ss.get_pricing()
+        .get("subscription_plans", {})
+        .get("currency", "USD"),
+    )
+
+    return SiteConfigOut(
+        name=sc.get("name", "MERIDIAN"),
+        tagline=sc.get("tagline", ""),
+        description=sc.get("description", ""),
+        url=sc.get("url", ""),
+        terms_of_service_url=sc.get("terms_of_service_url", "/terms"),
+        nav_links=nav_links,
+        footer_links=footer_links,
+        social_links=social_links,
+        payment_gateways=payment_gateways,
+        subscription_plans=subscription_plans,
+        print_pricing=print_pricing,
+    )
+
+
+# --- Newsletter Subscribe (public) ---
+
+
+class NewsletterSubscribeIn(BaseModel):
+    email: str
+
+
+@api.post("/newsletter/subscribe/", response=MessageOut)
+def newsletter_subscribe(request: HttpRequest, data: NewsletterSubscribeIn):
+    if not data.email or "@" not in data.email:
+        raise HttpError(400, "A valid email address is required")
+    # In production, save to a Newsletter model and send confirmation email.
+    # For now, accept and return success (the frontend handles the UX).
+    return MessageOut(message="Successfully subscribed to the newsletter")
 
 
 # --- Subscription Plans ---

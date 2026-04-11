@@ -59,6 +59,12 @@ class SiteSettings(models.Model):
         help_text='{"subscriptions_enabled": true, "print_orders_enabled": true, "comments_enabled": false, "social_auth_enabled": false, "otp_via_sms_enabled": false}',
     )
 
+    # General site configuration (nav links, social links, payment gateways, site metadata)
+    site_config = models.JSONField(
+        default=dict,
+        help_text='{"name": "MERIDIAN", "tagline": "...", "description": "...", "url": "...", "terms_of_service_url": "/terms", "nav_links": [...], "footer_links": [...], "social_links": [...], "payment_gateways": [...]}',
+    )
+
     class Meta:
         verbose_name = "Site Setting"
         verbose_name_plural = "Site Settings"
@@ -128,6 +134,23 @@ class SiteSettings(models.Model):
         }
         config = {**defaults}
         config.update(self.feature_flags or {})
+        return config
+
+    def get_site_config(self):
+        """Get general site config with defaults merged in."""
+        defaults = {
+            "name": "MERIDIAN",
+            "tagline": "Your World, Synthesized",
+            "description": "A daily synthesized knowledge magazine for the curious mind.",
+            "url": "",
+            "terms_of_service_url": "/terms",
+            "nav_links": [],
+            "footer_links": [],
+            "social_links": [],
+            "payment_gateways": [],
+        }
+        config = {**defaults}
+        config.update(self.site_config or {})
         return config
 
 

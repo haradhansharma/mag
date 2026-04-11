@@ -137,6 +137,7 @@ export interface ApiEditionBrief {
   week_start: string | null;
   week_end: string | null;
   article_count: number;
+  print_ready: boolean;
 }
 
 export interface ApiEditionOut extends ApiEditionBrief {
@@ -254,6 +255,55 @@ export async function fetchPrintPricing() {
     bulk_discount_percent: number;
     currency: string;
   }>('/print/pricing/');
+}
+
+// ---- Site Config API ----
+
+export interface ApiNavLink {
+  label: string;
+  href: string;
+  access?: string;
+}
+
+export interface ApiSocialLink {
+  platform: string;
+  url: string;
+  label: string;
+}
+
+export interface ApiPaymentGateway {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  payment_link: string;
+  enabled: boolean;
+}
+
+export interface ApiSiteConfigOut {
+  name: string;
+  tagline: string;
+  description: string;
+  url: string;
+  terms_of_service_url: string;
+  nav_links: ApiNavLink[];
+  footer_links: ApiNavLink[];
+  social_links: ApiSocialLink[];
+  payment_gateways: ApiPaymentGateway[];
+  subscription_plans: ApiSubscriptionPlanOut[];
+  print_pricing: {
+    unit_price_us: number;
+    shipping_us: number;
+    unit_price_international: number;
+    shipping_international: number;
+    bulk_discount_threshold: number;
+    bulk_discount_percent: number;
+    currency: string;
+  } | null;
+}
+
+export async function fetchSiteConfig(): Promise<ApiSiteConfigOut> {
+  return apiFetch<ApiSiteConfigOut>('/site-config/');
 }
 
 // ---- Auth API Functions ----

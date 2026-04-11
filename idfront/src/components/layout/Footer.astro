@@ -4,7 +4,7 @@
 // Uses site config for dynamic links and categories.
 import { getSiteConfig, getPublicCategories } from '@data/service';
 
-const { footerLinks, socialLinks } = getSiteConfig();
+const { footerLinks, socialLinks } = await getSiteConfig();
 const publicCategories = await getPublicCategories();
 const currentYear = new Date().getFullYear();
 

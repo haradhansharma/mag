@@ -13,9 +13,10 @@ import type { SubscriptionPlan } from '@data/types';
 
 interface Props {
   plans: SubscriptionPlan[];
+  gateways?: Array<{ id: string; name: string; description: string; icon: string; paymentLink: string }>;
 }
 
-const { plans } = Astro.props;
+const { plans, gateways = [] } = Astro.props;
 
 /**
  * Human-readable description for each plan type.
@@ -31,7 +32,7 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
 }
 ---
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" x-data="subscribeModal()">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" x-data={`subscribeModal(${JSON.stringify(gateways)})`}>
   {plans.map((plan) => (
     <div
       class:list={[
