@@ -32,7 +32,7 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
 }
 ---
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" x-data={`subscribeModal(${JSON.stringify(gateways)})`}>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
   {plans.map((plan) => (
     <div
       class:list={[
@@ -80,14 +80,14 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
 
       {plan.price === 0 ? (
         <a
-          href="/auth/login"
+          href="/auth/register"
           class="block w-full py-3 text-center font-semibold rounded-lg transition-colors border border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800"
         >
           Get Started Free
         </a>
       ) : (
         <button
-          @click={`openModal('${plan.id}', '${plan.name}', ${plan.price}, '${plan.interval}')`}
+          @click="$dispatch('open-subscribe-modal', { planId: '{plan.id}', planName: `{plan.name}`, planPrice: {plan.price}, planInterval: '{plan.interval}' })"
           class:list={[
             'block w-full py-3 text-center font-semibold rounded-lg transition-colors',
             plan.highlighted
