@@ -96,6 +96,21 @@ const dummyRecentSubmissions = dummyQueue.slice(0, 5);
                     </svg>
                     New Article
                   </a>
+                  <hr class="my-2 border-border dark:border-gray-800" />
+                  <!-- Print & Export (Editor Only) -->
+                  <a href="/editorial#print-management" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 text-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                    Print & Export
+                  </a>
+                  <!-- Editions Archive -->
+                  <a href="/editions/archive" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 text-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    Editions Archive
+                  </a>
                 </nav>
 
                 <hr class="my-4 border-border dark:border-gray-800" />
@@ -290,6 +305,151 @@ const dummyRecentSubmissions = dummyQueue.slice(0, 5);
                   </div>
                 </div>
               </div>
+
+              <!-- ==================== Print & Export Management ==================== -->
+              <div id="print-management" class="mt-8">
+                <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 overflow-hidden">
+                  <!-- Header -->
+                  <div class="bg-gradient-to-r from-primary via-secondary to-primary p-6">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 class="font-editorial text-xl font-bold text-white">Print & Export</h2>
+                        <p class="text-sm text-gray-300">Download print-ready PDFs for archive editions</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="p-6">
+                    <!-- Printing Guide -->
+                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 mb-6">
+                      <h3 class="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-400 mb-3">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Printing Guide
+                      </h3>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-blue-600 dark:text-blue-300">
+                        <div class="space-y-2">
+                          <div class="flex items-start gap-2">
+                            <span class="font-bold text-blue-800 dark:text-blue-200 mt-0.5">1.</span>
+                            <span>Select an edition marked as <strong>"Print Ready"</strong> from the list below</span>
+                          </div>
+                          <div class="flex items-start gap-2">
+                            <span class="font-bold text-blue-800 dark:text-blue-200 mt-0.5">2.</span>
+                            <span>Click <strong>"Print Preview"</strong> to view the edition layout before downloading</span>
+                          </div>
+                          <div class="flex items-start gap-2">
+                            <span class="font-bold text-blue-800 dark:text-blue-200 mt-0.5">3.</span>
+                            <span>Use your browser's <strong>Print dialog (Ctrl+P / Cmd+P)</strong> to export as PDF</span>
+                          </div>
+                        </div>
+                        <div class="space-y-2">
+                          <div class="flex items-start gap-2">
+                            <span class="font-bold text-blue-800 dark:text-blue-200 mt-0.5">4.</span>
+                            <span>Set paper size to <strong>A4</strong>, orientation to <strong>Portrait</strong></span>
+                          </div>
+                          <div class="flex items-start gap-2">
+                            <span class="font-bold text-blue-800 dark:text-blue-200 mt-0.5">5.</span>
+                            <span>Enable <strong>"Background graphics"</strong> in print settings for full color</span>
+                          </div>
+                          <div class="flex items-start gap-2">
+                            <span class="font-bold text-blue-800 dark:text-blue-200 mt-0.5">6.</span>
+                            <span>Margins: <strong>None</strong> or <strong>Minimum</strong> for best fit</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="mt-4 pt-3 border-t border-blue-200 dark:border-blue-800">
+                        <h4 class="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-2">Print Specifications</h4>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          <div class="bg-white dark:bg-blue-900/30 rounded-lg p-2 text-center">
+                            <div class="text-xs font-bold text-blue-800 dark:text-blue-200">A4</div>
+                            <div class="text-[10px] text-blue-500">Format</div>
+                          </div>
+                          <div class="bg-white dark:bg-blue-900/30 rounded-lg p-2 text-center">
+                            <div class="text-xs font-bold text-blue-800 dark:text-blue-200">170gsm</div>
+                            <div class="text-[10px] text-blue-500">Paper</div>
+                          </div>
+                          <div class="bg-white dark:bg-blue-900/30 rounded-lg p-2 text-center">
+                            <div class="text-xs font-bold text-blue-800 dark:text-blue-200">300 DPI</div>
+                            <div class="text-[10px] text-blue-500">Resolution</div>
+                          </div>
+                          <div class="bg-white dark:bg-blue-900/30 rounded-lg p-2 text-center">
+                            <div class="text-xs font-bold text-blue-800 dark:text-blue-200">CMYK</div>
+                            <div class="text-[10px] text-blue-500">Color</div>
+                          </div>
+                          <div class="bg-white dark:bg-blue-900/30 rounded-lg p-2 text-center">
+                            <div class="text-xs font-bold text-blue-800 dark:text-blue-200">Saddle</div>
+                            <div class="text-[10px] text-blue-500">Binding</div>
+                          </div>
+                          <div class="bg-white dark:bg-blue-900/30 rounded-lg p-2 text-center">
+                            <div class="text-xs font-bold text-blue-800 dark:text-blue-200">24-36</div>
+                            <div class="text-[10px] text-blue-500">Pages</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Editions Print List -->
+                    <div x-data="printManager()" x-init="loadEditions()" class="space-y-3">
+                      <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100 mb-3">
+                        Print-Ready Editions
+                      </h3>
+                      <div x-show="loading" class="text-center py-8">
+                        <svg class="animate-spin w-6 h-6 mx-auto text-accent mb-2" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-sm text-text-muted dark:text-gray-500">Loading editions...</p>
+                      </div>
+                      <div x-show="!loading && editions.length === 0" class="text-center py-8">
+                        <p class="text-sm text-text-muted dark:text-gray-500">No print-ready editions available. Mark editions as "Print Ready" in the edition manager.</p>
+                      </div>
+                      <template x-for="edition in editions" :key="edition.id">
+                        <div class="flex items-center justify-between p-4 bg-surface dark:bg-gray-800 rounded-xl border border-border dark:border-gray-700">
+                          <div class="flex items-center gap-4">
+                            <div class="w-12 h-16 rounded-lg overflow-hidden shadow-md flex-shrink-0">
+                              <img :src="edition.coverImage" :alt="edition.title" class="w-full h-full object-cover" loading="lazy" />
+                            </div>
+                            <div>
+                              <h4 class="text-sm font-semibold text-text-primary dark:text-gray-100" x-text="`Edition #${edition.number}: ${edition.title}`"></h4>
+                              <p class="text-xs text-text-muted dark:text-gray-500" x-text="`${edition.articleCount} articles`"></p>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-2 flex-shrink-0">
+                            <a
+                              :href="`/print/${edition.slug}`"
+                              target="_blank"
+                              class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-accent/10 hover:bg-accent/20 text-accent rounded-lg transition-colors"
+                            >
+                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                              </svg>
+                              Preview
+                            </a>
+                            <a
+                              :href="`/print/${edition.slug}`"
+                              target="_blank"
+                              onclick="setTimeout(() => window.print(), 1000)"
+                              class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-accent hover:bg-sky-600 text-white rounded-lg transition-colors shadow-sm"
+                            >
+                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+                              </svg>
+                              Print PDF
+                            </a>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -429,6 +589,37 @@ const dummyRecentSubmissions = dummyQueue.slice(0, 5);
       formatDate(dateStr) {
         if (!dateStr) return '';
         return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      },
+    };
+  }
+
+  function printManager() {
+    const API_BASE = 'http://localhost:8085/api/v1';
+    const MEDIA_BASE = 'http://localhost:8085';
+    return {
+      loading: true,
+      editions: [],
+      async loadEditions() {
+        try {
+          const token = localStorage.getItem('meridian_token');
+          const headers = { 'Accept': 'application/json' };
+          if (token) headers['Authorization'] = 'Bearer ' + token;
+          const res = await fetch(`${API_BASE}/editions/?page_size=100`, { headers });
+          if (res.ok) {
+            const data = await res.json();
+            this.editions = (data.results || [])
+              .filter(e => e.print_ready)
+              .map(e => ({
+                id: e.id,
+                number: e.number,
+                title: e.title,
+                slug: e.slug,
+                articleCount: e.article_count || 0,
+                coverImage: e.cover_image ? (e.cover_image.startsWith('http') ? e.cover_image : MEDIA_BASE + e.cover_image) : '',
+              }));
+          }
+        } catch (e) { /* Silent fail */ }
+        this.loading = false;
       },
     };
   }

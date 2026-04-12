@@ -13,13 +13,24 @@ import NewsletterSignup from '@components/common/NewsletterSignup.astro';
 import { getSiteConfig } from '@data/service';
 
 // Get subscription plans from site config
-const { subscriptionPlans: plans } = await getSiteConfig();
+const siteConfig = await getSiteConfig();
+const plans = siteConfig.subscriptionPlans || [];
 
 // The 3 main plans for individual card display
 const mainPlans = plans.filter(p => ['plan-free', 'plan-premium', 'plan-print'].includes(p.id));
 
 // Annual savings text
 const annualSavings = 'Save $20 per year';
+
+// Show a warning if plans appear to be dummy data (API not connected)
+const API_BASE = typeof process !== 'undefined'
+  ? (process.env.PUBLIC_API_URL || 'http://localhost:8085/api/v1').replace(/\/api\/v1\/?$/, '')
+  : 'http://localhost:8085';
+let apiConnected = false;
+try {
+  const res = await fetch(`${API_BASE}/api/v1/plans/`, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
+  apiConnected = res.ok;
+} catch { /* API not reachable */ }
 
 // SEO
 const title = 'Simple, Transparent Pricing — MERIDIAN Magazine';
@@ -97,6 +108,21 @@ const faqItems = [
     <!-- ==================== Pricing Cards ==================== -->
     <section class="py-16 bg-white dark:bg-gray-950 -mt-8">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- API Not Connected Warning -->
+        {!apiConnected && (
+          <div class="mb-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+            <div>
+              <p class="text-sm font-semibold text-amber-700 dark:text-amber-400">Backend API not connected</p>
+              <p class="text-xs text-amber-600 dark:text-amber-500 mt-0.5">Plans below are sample data. Run <code class="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">python manage.py seed_db</code> in the backend container to populate real subscription plans.</p>
+            </div>
+          </div>
+        )}
+
+        {mainPlans.length > 0 ? (
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-0 items-stretch">
           {mainPlans.map((plan) => {
             const isPopular = plan.highlighted === true;
@@ -111,6 +137,17 @@ const faqItems = [
             );
           })}
         </div>
+        ) : (
+        <div class="text-center py-16">
+          <svg class="w-16 h-16 mx-auto text-text-muted/30 dark:text-gray-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+          <h3 class="font-editorial text-xl font-bold text-text-secondary dark:text-gray-400 mb-2">No Subscription Plans Available</h3>
+          <p class="text-text-muted dark:text-gray-500 max-w-md mx-auto">
+            Subscription plans have not been configured yet. Please run the database seed command to populate plans.
+          </p>
+        </div>
+        )}
       </div>
     </section>
 

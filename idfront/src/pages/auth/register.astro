@@ -121,6 +121,19 @@ import Breadcrumbs from '@components/common/Breadcrumbs.astro';
                 <p class="text-xs" :class="passwordStrength >= 3 ? 'text-green-600 dark:text-green-400' : passwordStrength >= 2 ? 'text-amber-600 dark:text-amber-400' : 'text-text-muted dark:text-gray-500'" x-text="passwordStrengthLabel"></p>
               </div>
 
+              <!-- Terms Agreement Checkbox -->
+              <label class="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  x-model="agreeTerms"
+                  required
+                  class="mt-1 w-4 h-4 rounded border-border dark:border-gray-600 text-accent focus:ring-accent"
+                />
+                <span class="text-sm text-text-secondary dark:text-gray-400 group-hover:text-primary dark:group-hover:text-gray-300 transition-colors">
+                  I agree to the <a href="/terms" target="_blank" class="text-accent hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" class="text-accent hover:underline">Privacy Policy</a>.
+                </span>
+              </label>
+
               <!-- Error message -->
               <div x-show="error" x-cloak x-transition class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
                 <p class="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
@@ -138,7 +151,10 @@ import Breadcrumbs from '@components/common/Breadcrumbs.astro';
                 </svg>
                 <h3 class="font-semibold text-green-700 dark:text-green-400">Account Created!</h3>
                 <p class="text-sm text-green-600 dark:text-green-500 mt-1">
-                  A verification email has been sent to your inbox. Please verify your email to activate your account.
+                  A verification email has been sent to your inbox. Please check your email and click the verification link to activate your account before signing in.
+                </p>
+                <p class="text-xs text-green-600/70 dark:text-green-500/70 mt-2">
+                  Didn't receive it? Check your spam folder or <a href="/auth/login" class="underline hover:text-green-700">try logging in</a> to request a new one.
                 </p>
               </div>
 
@@ -157,12 +173,7 @@ import Breadcrumbs from '@components/common/Breadcrumbs.astro';
                 </button>
               </div>
 
-              <!-- Terms -->
-              <p class="text-xs text-text-muted dark:text-gray-500 text-center" x-show="!success">
-                By creating an account, you agree to our
-                <a href="/terms" class="text-accent hover:underline">Terms of Service</a> and
-                <a href="/privacy" class="text-accent hover:underline">Privacy Policy</a>.
-              </p>
+
             </form>
 
             <!-- Divider -->
@@ -195,6 +206,7 @@ function registerForm() {
     username: '',
     email: '',
     password: '',
+    agreeTerms: false,
     showPassword: false,
     loading: false,
     error: '',
@@ -232,6 +244,10 @@ function registerForm() {
       }
       if (this.passwordStrength < 2) {
         this.error = 'Password is too weak. Include uppercase letters, numbers, or symbols.';
+        return;
+      }
+      if (!this.agreeTerms) {
+        this.error = 'You must agree to the Terms of Service and Privacy Policy.';
         return;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {

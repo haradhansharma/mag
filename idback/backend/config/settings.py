@@ -62,17 +62,20 @@ MIDDLEWARE = [
     "common.middleware.AdminIPRestrictionMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = env("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
+
+# CORS — in DEBUG mode, allow all origins by default for local development
+CORS_ALLOW_ALL_ORIGINS = env("CORS_ALLOW_ALL_ORIGINS", default=DEBUG, cast=bool)
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=[],
+    default=["http://localhost:4321", "http://localhost:8085", "http://127.0.0.1:4321", "http://127.0.0.1:8085"],
 )
 
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS",
-    default=["http://localhost:4321", "http://localhost:8085"],
+    default=["http://localhost:4321", "http://localhost:8085", "http://127.0.0.1:4321", "http://127.0.0.1:8085"],
 )
+
 
 
 ROOT_URLCONF = "config.urls"

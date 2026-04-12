@@ -132,14 +132,6 @@ const gatewaysJson = JSON.stringify(enabledGateways.map(g => ({
                 </div>
               </div>
 
-              <!-- Print Preview Link -->
-              <a
-                x-show="selectedEdition.printReady"
-                :href="`/print/${selectedEdition.slug}`"
-                class="block w-full text-center bg-accent/10 hover:bg-accent/20 text-accent font-medium py-2.5 rounded-lg text-sm transition-colors"
-              >
-                View Print Preview →
-              </a>
             </div>
 
             <!-- No print-ready editions message -->
