@@ -1,60 +1,157 @@
 ---
 // print/[slug].astro
-// Weekly print preview page for a specific edition.
-// Generates a full print-ready preview with:
+// Print-ready edition page for editors and admins ONLY.
+// Generates a full printer-ready output with:
 // - Cover page via CoverTemplate
 // - Table of Contents via PrintLayout
-// - All articles rendered via ArticlePrint
-// - PDF download link
-// Static paths generated for all print-ready editions.
+// - All articles rendered via ArticlePrint (with proper page breaks)
+// - Printer guide / colophon back page
+//
+// ACCESS CONTROL: This page is restricted to editor and admin roles.
+// Content is hidden behind a client-side auth gate (Alpine.js) that
+// verifies the user's role via the backend /auth/me/ endpoint.
+// The content is never rendered in the DOM until auth is confirmed.
 
 import PrintLayout from '@layouts/PrintLayout.astro';
 import CoverTemplate from '@components/print/CoverTemplate.astro';
 import ArticlePrint from '@components/print/ArticlePrint.astro';
-import { getAllEditions } from '@data/service';
+import { getEditionBySlug } from '@data/service';
 import { formatEditionDateRange } from '@utils/helpers';
 
-export async function getStaticPaths() {
-  const editions = (await getAllEditions()).filter(e => e.printReady);
+const { slug } = Astro.params;
 
-  return editions.map(edition => ({
-    params: { slug: edition.slug },
-    props: { edition },
-  }));
+if (!slug) {
+  return Astro.redirect('/404');
 }
 
-interface Props {
-  edition: Awaited<ReturnType<typeof getAllEditions>>[number];
-}
-
-const { edition } = Astro.props;
+// Fetch FULL edition data including articles
+const edition = await getEditionBySlug(slug);
 
 if (!edition) {
-  return Astro.redirect('/print/order');
+  return Astro.redirect('/404');
 }
 
 const dateRange = formatEditionDateRange(edition.weekStart, edition.weekEnd);
 ---
 
-<PrintLayout
-  title={`Print Preview: Edition #${edition.number} — MERIDIAN`}
-  edition={edition}
-  description={`Print preview for MERIDIAN Magazine Edition #${edition.number}: ${edition.title}. ${dateRange}.`}
+<div
+  x-data="printAuthGuard()"
+  x-init="checkAuth()"
+  x-cloak
 >
-  <!-- Cover slot -->
-  <CoverTemplate slot="cover" edition={edition} />
-
-  <!-- Articles slot — each article on its own "page" -->
-  <div slot="articles">
-    {edition.articles && edition.articles.map((article, index) => (
-      <div class="print-page" style="padding: 20mm 18mm 25mm 18mm;">
-        <ArticlePrint
-          article={article}
-          pageNumber={index + 3}
-          isTwoColumn={article.contentType === 'feature' && index > 0}
-          isFeature={article.featured}
-        />
-      </div>
-    ))}
+  <!-- Loading state (shown while checking auth) -->
+  <div x-show="checking" class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="text-center">
+      <svg class="animate-spin w-8 h-8 mx-auto text-accent mb-3" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="text-gray-500 text-sm">Verifying access...</p>
+    </div>
   </div>
-</PrintLayout>
+
+  <!-- Access denied state (shown when user is not editor/admin) -->
+  <div x-show="!checking && !authorized" x-cloak class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="text-center max-w-md mx-auto p-8">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h1>
+      <p class="text-gray-500 mb-6">
+        Print preview is only available to editors and administrators.
+        Please sign in with an editor or admin account to access this page.
+      </p>
+      <a
+        href="/auth/login?redirect=/print/{slug}"
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+        </svg>
+        Sign In as Editor
+      </a>
+      <div class="mt-4">
+        <a href="/editions/{slug}" class="text-sm text-sky-500 hover:underline">or view the public edition page</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authenticated content — only shown when authorized is true -->
+  <div x-show="!checking && authorized">
+    <PrintLayout
+      title={`Print Preview: Edition #${edition.number} — MERIDIAN`}
+      edition={edition}
+      description={`Print preview for MERIDIAN Magazine Edition #${edition.number}: ${edition.title}. ${dateRange}.`}
+    >
+      <!-- Cover slot -->
+      <CoverTemplate slot="cover" edition={edition} />
+
+      <!-- Articles slot — each article on its own "page" with print page breaks -->
+      <div slot="articles">
+        {edition.articles && edition.articles.map((article, index) => (
+          <div class="print-page" style="padding: 20mm 18mm 25mm 18mm; page-break-after: always;">
+            <ArticlePrint
+              article={article}
+              pageNumber={index + 3}
+              isTwoColumn={article.contentType === 'feature' && index > 0}
+              isFeature={article.featured}
+            />
+          </div>
+        ))}
+      </div>
+    </PrintLayout>
+  </div>
+</div>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+</style>
+
+<script is:inline>
+function printAuthGuard() {
+  const API_BASE = window.__MERIDIAN_API_URL__ || 'http://localhost:8085/api/v1';
+
+  return {
+    checking: true,
+    authorized: false,
+
+    async checkAuth() {
+      const token = localStorage.getItem('meridian_token');
+      if (!token) {
+        this.checking = false;
+        this.authorized = false;
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/auth/me/', {
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+
+        if (!res.ok) {
+          this.checking = false;
+          this.authorized = false;
+          return;
+        }
+
+        const user = await res.json();
+        const role = (user.role || '').toLowerCase();
+
+        // Only editors and admins can access print preview
+        if (role === 'editor' || role === 'admin' || role === 'superadmin') {
+          this.authorized = true;
+        }
+      } catch (e) {
+        // API unreachable — deny access for security
+        this.authorized = false;
+      } finally {
+        this.checking = false;
+      }
+    },
+  };
+}
+</script>

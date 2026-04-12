@@ -93,6 +93,16 @@ def subscriber_required(user: User) -> User:
     return user
 
 
+def is_admin(user: User) -> bool:
+    """Check if user has admin (chief editor / superadmin) role."""
+    return user.role == User.Role.ADMIN
+
+
+def is_editor_or_admin(user: User) -> bool:
+    """Check if user has editor or admin role."""
+    return user.role in (User.Role.EDITOR, User.Role.ADMIN)
+
+
 # ============================================================
 # Email verification helpers
 # ============================================================

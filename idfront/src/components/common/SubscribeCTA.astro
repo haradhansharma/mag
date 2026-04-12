@@ -108,14 +108,8 @@ function getPlanDescription(type: SubscriptionPlan['type']): string {
 
 <script is:inline>
 function handleSubscribeClick(btn) {
-  const user = JSON.parse(localStorage.getItem('meridian_user') || 'null');
-  if (!user) {
-    // Not logged in — redirect to login with return URL
-    const redirect = encodeURIComponent(window.location.pathname);
-    window.location.href = '/auth/login?redirect=' + redirect;
-    return;
-  }
-  // Logged in — dispatch event to open the payment modal
+  // Directly dispatch the event to open the payment modal.
+  // The modal itself will handle login requirement if needed.
   const detail = {
     planId: btn.dataset.planId,
     planName: btn.dataset.planName,

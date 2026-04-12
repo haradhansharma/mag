@@ -425,6 +425,7 @@ const dummyRecentSubmissions = dummyQueue.slice(0, 5);
                               :href="`/print/${edition.slug}`"
                               target="_blank"
                               class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-accent/10 hover:bg-accent/20 text-accent rounded-lg transition-colors"
+                              title="Preview print-ready edition in browser with cover, TOC, all articles, and printer guide"
                             >
                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -432,17 +433,16 @@ const dummyRecentSubmissions = dummyQueue.slice(0, 5);
                               </svg>
                               Preview
                             </a>
-                            <a
-                              :href="`/print/${edition.slug}`"
-                              target="_blank"
-                              onclick="setTimeout(() => window.print(), 1000)"
+                            <button
+                              @click="openPrintDialog(edition.slug)"
                               class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-accent hover:bg-sky-600 text-white rounded-lg transition-colors shadow-sm"
+                              title="Opens print-ready edition and triggers browser print dialog (Ctrl+P)"
                             >
                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
                               </svg>
                               Print PDF
-                            </a>
+                            </button>
                           </div>
                         </div>
                       </template>
@@ -620,6 +620,20 @@ const dummyRecentSubmissions = dummyQueue.slice(0, 5);
           }
         } catch (e) { /* Silent fail */ }
         this.loading = false;
+      },
+      openPrintDialog(slug) {
+        // Open the print-ready page in a new tab and trigger the browser print dialog
+        const printWindow = window.open(`/print/${slug}`, '_blank');
+        if (printWindow) {
+          // Wait for the page to load, then trigger print
+          printWindow.addEventListener('load', function onLoaded() {
+            printWindow.removeEventListener('load', onLoaded);
+            // Small delay to ensure all resources (fonts, images) are loaded
+            setTimeout(() => {
+              printWindow.print();
+            }, 800);
+          });
+        }
       },
     };
   }

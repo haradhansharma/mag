@@ -104,6 +104,8 @@ const breadcrumbs = [
           searchQuery: '',
           filterYear: '',
           filterMonth: '',
+          currentPage: 1,
+          perPage: 10,
           filteredCount: window.__meridian_editions ? window.__meridian_editions.length : 0,
           get filteredEditions() {
             let result = [...this.editions];
@@ -123,8 +125,38 @@ const breadcrumbs = [
             }
             this.filteredCount = result.length;
             return result;
+          },
+          get totalPages() {
+            return Math.max(1, Math.ceil(this.filteredCount / this.perPage));
+          },
+          get paginatedEditions() {
+            const start = (this.currentPage - 1) * this.perPage;
+            return this.filteredEditions.slice(start, start + this.perPage);
+          },
+          get pageNumbers() {
+            const pages = [];
+            const total = this.totalPages;
+            let start = Math.max(1, this.currentPage - 2);
+            let end = Math.min(total, this.currentPage + 2);
+            if (start === 1) end = Math.min(total, start + 4);
+            if (end === total) start = Math.max(1, end - 4);
+            for (let i = start; i <= end; i++) pages.push(i);
+            return pages;
+          },
+          goToPage(page) {
+            this.currentPage = Math.max(1, Math.min(page, this.totalPages));
+          },
+          resetFilters() {
+            this.filterYear = '';
+            this.filterMonth = '';
+            this.searchQuery = '';
+            this.currentPage = 1;
+          },
+          applyFilter() {
+            this.currentPage = 1;
           }
         }"
+        @keydown.escape.window="filterYear = ''; filterMonth = ''; searchQuery = '';"
       >
 
         <!-- Toolbar Row -->
@@ -142,6 +174,7 @@ const breadcrumbs = [
                 type="text"
                 id="archive-search"
                 x-model="searchQuery"
+                @input="applyFilter()"
                 placeholder="Search editions..."
                 class="w-full sm:w-56 pl-9 pr-4 py-2 text-sm rounded-lg bg-white dark:bg-gray-900 border border-border dark:border-gray-600 text-text-primary dark:text-gray-200 placeholder:text-text-muted dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
               />
@@ -153,6 +186,7 @@ const breadcrumbs = [
               <select
                 id="filter-year"
                 x-model="filterYear"
+                @change="applyFilter()"
                 class="appearance-none w-full sm:w-auto pl-3 pr-8 py-2 text-sm rounded-lg bg-white dark:bg-gray-900 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors cursor-pointer"
               >
                 <option value="">All Years</option>
@@ -171,6 +205,7 @@ const breadcrumbs = [
               <select
                 id="filter-month"
                 x-model="filterMonth"
+                @change="applyFilter()"
                 class="appearance-none w-full sm:w-auto pl-3 pr-8 py-2 text-sm rounded-lg bg-white dark:bg-gray-900 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors cursor-pointer"
               >
                 <option value="">All Months</option>
@@ -187,7 +222,7 @@ const breadcrumbs = [
             <button
               x-show="filterYear || filterMonth || searchQuery"
               x-cloak
-              @click="filterYear = ''; filterMonth = ''; searchQuery = '';"
+              @click="resetFilters()"
               class="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-accent hover:bg-accent/10 rounded-lg transition-colors whitespace-nowrap"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,7 +264,7 @@ const breadcrumbs = [
         <!-- ====== Grid View ====== -->
         <div x-show="view === 'grid'" x-transition.opacity.duration.200ms>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 justify-items-center">
-          <template x-for="edition in filteredEditions" :key="edition.number">
+          <template x-for="edition in paginatedEditions" :key="edition.number">
             <div class="edition-card w-full max-w-[240px] bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 overflow-hidden">
               <div class="edition-card-inner">
                 <a :href="'/editions/' + edition.slug" class="block relative aspect-[3/4] overflow-hidden shadow-lg">
@@ -286,7 +321,7 @@ const breadcrumbs = [
           </div>
 
           <div class="space-y-3">
-            <template x-for="edition in filteredEditions" :key="edition.number">
+            <template x-for="edition in paginatedEditions" :key="edition.number">
               <a
                 :href="'/editions/' + edition.slug"
                 class="group block bg-white dark:bg-gray-900 rounded-xl border border-border dark:border-gray-800 hover:border-accent/30 dark:hover:border-accent/30 hover:shadow-lg transition-all duration-200 overflow-hidden"
@@ -372,7 +407,7 @@ const breadcrumbs = [
             Try adjusting your filters or search query.
           </p>
           <button
-            @click="filterYear = ''; filterMonth = ''; searchQuery = '';"
+            @click="resetFilters()"
             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,6 +416,52 @@ const breadcrumbs = [
             Reset All Filters
           </button>
         </div>
+
+        <!-- ====== Pagination ====== -->
+        <div
+          x-show="totalPages > 1"
+          x-cloak
+          class="mt-8 flex items-center justify-center gap-2"
+        >
+          <!-- Previous -->
+          <button
+            @click="goToPage(currentPage - 1)"
+            :disabled="currentPage <= 1"
+            class="px-3 py-2 rounded-lg border border-border dark:border-gray-700 text-sm font-medium text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            aria-label="Previous page"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+
+          <!-- Page Numbers -->
+          <template x-for="page in pageNumbers" :key="page">
+            <button
+              @click="goToPage(page)"
+              :class="page === currentPage ? 'bg-accent text-white border-accent' : 'border-border dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800'"
+              class="w-10 h-10 rounded-lg border text-sm font-semibold transition-colors"
+              :aria-current="page === currentPage ? 'page' : undefined"
+              x-text="page"
+            ></button>
+          </template>
+
+          <!-- Next -->
+          <button
+            @click="goToPage(currentPage + 1)"
+            :disabled="currentPage >= totalPages"
+            class="px-3 py-2 rounded-lg border border-border dark:border-gray-700 text-sm font-medium text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            aria-label="Next page"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <!-- Page info -->
+        <p
+          x-show="totalPages > 1"
+          x-cloak
+          class="text-center text-xs text-text-muted dark:text-gray-500 mt-3"
+          x-text="`Page ${currentPage} of ${totalPages} — ${filteredCount} edition${filteredCount !== 1 ? 's' : ''} found`"
+        ></p>
 
         <!-- ====== Stats Footer ====== -->
         <div

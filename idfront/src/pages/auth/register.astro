@@ -159,7 +159,7 @@ import Breadcrumbs from '@components/common/Breadcrumbs.astro';
               </div>
 
               <!-- Submit Button -->
-              <div x-show="!success">
+              <div x-show=true>
                 <button
                   type="submit"
                   :disabled="loading"
@@ -199,6 +199,12 @@ import Breadcrumbs from '@components/common/Breadcrumbs.astro';
     </div>
   </div>
 </BaseLayout>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+</style>
 
 <script is:inline>
 function registerForm() {

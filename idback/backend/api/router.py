@@ -19,6 +19,7 @@ from api.auth import (
     create_verification_token,
     delete_user_tokens,
     editor_required,
+    is_admin,
     send_password_reset_email,
     send_verification_email,
     subscriber_required,
@@ -1125,6 +1126,19 @@ def editorial_queue(
     if status:
         qs = qs.filter(status=status)
 
+    # Role-based access: editors see only their own scope, admins see everything
+    if not is_admin(request.auth):
+        # Editors see articles they authored OR articles assigned to them for review
+        from common.models import Author
+        editor_author = Author.objects.filter(user=request.auth).first()
+        if editor_author:
+            qs = qs.filter(
+                Q(author=editor_author) | Q(reviewed_by=editor_author)
+            )
+        else:
+            # Editor has no author profile — show nothing for safety
+            qs = qs.none()
+
     page_obj, next_url, previous_url = _paginate(qs, page, page_size, request)
     results = [
         EditorialQueueItemOut(
@@ -1157,16 +1171,39 @@ def editorial_queue(
 @api.get("/editorial/stats/", response=EditorialStatsOut, auth=GlobalAuth())
 def editorial_stats(request: HttpRequest):
     editor_required(request.auth)
-    total = Article.objects.count()
-    drafts = Article.objects.filter(status=Article.Status.DRAFT).count()
-    in_review = Article.objects.filter(status=Article.Status.IN_REVIEW).count()
-    approved = Article.objects.filter(status=Article.Status.APPROVED).count()
-    rejected = Article.objects.filter(status=Article.Status.REJECTED).count()
-    published_week = Article.objects.filter(
-        status=Article.Status.PUBLISHED,
-        published_at__gte=datetime.now(timezone.utc) - timedelta(days=7),
-    ).count()
-    avg_rt = Article.objects.aggregate(avg=Avg("reading_time"))["avg"] or 0
+    if is_admin(request.auth):
+        # Admin sees all stats
+        total = Article.objects.count()
+        drafts = Article.objects.filter(status=Article.Status.DRAFT).count()
+        in_review = Article.objects.filter(status=Article.Status.IN_REVIEW).count()
+        approved = Article.objects.filter(status=Article.Status.APPROVED).count()
+        rejected = Article.objects.filter(status=Article.Status.REJECTED).count()
+        published_week = Article.objects.filter(
+            status=Article.Status.PUBLISHED,
+            published_at__gte=datetime.now(timezone.utc) - timedelta(days=7),
+        ).count()
+        avg_rt = Article.objects.aggregate(avg=Avg("reading_time"))["avg"] or 0
+    else:
+        # Editors see only their scope
+        from common.models import Author
+        editor_author = Author.objects.filter(user=request.auth).first()
+        base_qs = Article.objects.all()
+        if editor_author:
+            base_qs = base_qs.filter(
+                Q(author=editor_author) | Q(reviewed_by=editor_author)
+            )
+        else:
+            base_qs = Article.objects.none()
+        total = base_qs.count()
+        drafts = base_qs.filter(status=Article.Status.DRAFT).count()
+        in_review = base_qs.filter(status=Article.Status.IN_REVIEW).count()
+        approved = base_qs.filter(status=Article.Status.APPROVED).count()
+        rejected = base_qs.filter(status=Article.Status.REJECTED).count()
+        published_week = base_qs.filter(
+            status=Article.Status.PUBLISHED,
+            published_at__gte=datetime.now(timezone.utc) - timedelta(days=7),
+        ).count()
+        avg_rt = base_qs.aggregate(avg=Avg("reading_time"))["avg"] or 0
 
     return EditorialStatsOut(
         total_drafts=drafts,
@@ -1187,7 +1224,21 @@ def editorial_activity_log(
     editor_required(request.auth)
     activities = EditorialActivity.objects.select_related(
         "article", "performed_by"
-    ).order_by("-created_at")[:limit]
+    ).order_by("-created_at")
+
+    # Role-based: editors see only activity on their scoped articles
+    if not is_admin(request.auth):
+        from common.models import Author
+        editor_author = Author.objects.filter(user=request.auth).first()
+        if editor_author:
+            scoped_article_ids = Article.objects.filter(
+                Q(author=editor_author) | Q(reviewed_by=editor_author)
+            ).values_list("id", flat=True)
+            activities = activities.filter(article_id__in=scoped_article_ids)
+        else:
+            activities = activities.none()
+
+    activities = activities[:limit]
     return [
         EditorialActivityOut(
             id=str(a.id),
