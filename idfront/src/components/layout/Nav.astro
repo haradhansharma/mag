@@ -8,14 +8,19 @@ import { getSiteConfig } from '@data/service';
 const { navLinks } = await getSiteConfig();
 ---
 
-<div class="hidden lg:flex items-center gap-1">
-  {navLinks.map(link => (
+<nav class="hidden lg:flex items-center gap-1" aria-label="Main navigation">
+  {navLinks.map(link => {
+    const isActive = link.href === Astro.url.pathname || (link.href !== '/' && Astro.url.pathname.startsWith(link.href));
+    return (
     <a
       href={link.href}
       class:list={[
         'px-3 py-2 text-sm font-medium transition-colors',
-        'text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-white',
+        isActive
+          ? 'text-accent dark:text-accent-light font-bold'
+          : 'text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-white',
       ]}
+      {...isActive && { 'aria-current': 'page' }}
     >
       {link.label}
       {link.access === 'premium' && (
@@ -26,11 +31,12 @@ const { navLinks } = await getSiteConfig();
         </span>
       )}
     </a>
-  ))}
-  <a href="/editorial" class="flex items-center gap-1 px-3 py-2 text-sm font-medium text-text-secondary dark:text-gray-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+    );
+  })}
+  <a href="/editorial" class:list={["flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors", Astro.url.pathname.startsWith("/editorial") ? "text-accent dark:text-accent-light font-bold" : "text-text-secondary dark:text-gray-400 hover:text-accent dark:hover:text-accent-light"]} {...Astro.url.pathname.startsWith("/editorial") && { "aria-current": "page" }}>
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
     </svg>
     Editorial
   </a>
-</div>
+  </nav>

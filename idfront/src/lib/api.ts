@@ -32,7 +32,7 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
   };
 
   if (options.token) {
-    headers['Authorization'] = `Token ${options.token}`;
+    headers['Authorization'] = `Bearer ${options.token}`;
   }
 
   const response = await fetch(url.toString(), {
@@ -313,6 +313,7 @@ export interface ApiTokenOut {
   user_id: string;
   username: string;
   role: string;
+  is_verified: boolean;
 }
 
 export interface ApiUserOut {
@@ -323,6 +324,7 @@ export interface ApiUserOut {
   first_name: string;
   last_name: string;
   is_active: boolean;
+  is_verified: boolean;
   date_joined: string | null;
 }
 
@@ -361,7 +363,7 @@ export async function apiLogout(token: string): Promise<void> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Token ${token}`,
+      'Authorization': `Bearer ${token}`,
     },
   });
 }
@@ -379,6 +381,98 @@ export async function apiNewsletterSubscribe(email: string): Promise<{ message: 
     throw new Error(err.detail || `Newsletter subscription failed: ${response.status}`);
   }
   return response.json() as Promise<{ message: string }>;
+}
+
+// ---- Editorial API Functions (authenticated) ----
+
+export interface ApiEditorialQueueItem {
+  id: string;
+  title: string;
+  author_name: string;
+  author_slug: string;
+  category_name: string;
+  category_slug: string;
+  cover_image: string;
+  excerpt: string;
+  status: string;
+  submitted_at: string | null;
+  updated_at: string | null;
+  reviewed_by_name: string | null;
+  rejection_reason: string;
+  word_count: number;
+  reading_time: number;
+}
+
+export interface ApiEditorialStats {
+  total_drafts: number;
+  in_review: number;
+  approved: number;
+  rejected: number;
+  published_this_week: number;
+  total_articles: number;
+  avg_reading_time: number;
+}
+
+export interface ApiEditorialActivity {
+  id: string;
+  action: string;
+  article_title: string;
+  performed_by_name: string;
+  timestamp: string | null;
+  details: string;
+}
+
+export async function fetchEditorialQueue(token: string, params?: {
+  page?: number;
+  page_size?: number;
+  status?: string;
+}): Promise<ApiPaginatedResponse<ApiEditorialQueueItem>> {
+  return apiFetch<ApiPaginatedResponse<ApiEditorialQueueItem>>('/editorial/queue/', { token, params });
+}
+
+export async function fetchEditorialStats(token: string): Promise<ApiEditorialStats> {
+  return apiFetch<ApiEditorialStats>('/editorial/stats/', { token });
+}
+
+export async function fetchEditorialActivity(token: string, params?: {
+  limit?: number;
+}): Promise<ApiEditorialActivity[]> {
+  return apiFetch<ApiEditorialActivity[]>('/editorial/activity/', { token, params });
+}
+
+// ---- Authenticated POST helpers for editorial actions ----
+
+export async function apiSubmitArticle(token: string, articleId: string): Promise<unknown> {
+  const response = await fetch(`${API_BASE}/articles/${articleId}/submit/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Action failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function apiUpdateArticleStatus(token: string, articleId: string, status: string, rejectionReason?: string): Promise<unknown> {
+  const body: Record<string, unknown> = { status };
+  if (rejectionReason) body.rejection_reason = rejectionReason;
+  const response = await fetch(`${API_BASE}/articles/${articleId}/status/`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Status update failed: ${response.status}`);
+  }
+  return response.json();
 }
 
 // ---- Helper: Check if API is reachable ----

@@ -143,7 +143,8 @@ def verify_password_reset_token(user: User, token: str) -> bool:
 def send_verification_email(user: User, token: str) -> None:
     """Send a verification email to the user. Uses console backend in DEBUG mode."""
     # The frontend verification URL can be configured from site settings
-    verify_url = f"http://localhost:4321/auth/verify?token={token}&email={user.email}"
+    site_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:4321')
+    verify_url = f"{site_url}/auth/verify?token={token}&email={user.email}"
     subject = "Verify your MERIDIAN account"
     message = (
         f"Hello {user.first_name or user.username},\n\n"
@@ -162,8 +163,9 @@ def send_verification_email(user: User, token: str) -> None:
 
 def send_password_reset_email(user: User, token: str) -> None:
     """Send a password reset email. Uses console backend in DEBUG mode."""
+    site_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:4321')
     reset_url = (
-        f"http://localhost:4321/auth/reset-password?token={token}&email={user.email}"
+        f"{site_url}/auth/reset-password?token={token}&email={user.email}"
     )
     subject = "Reset your MERIDIAN password"
     message = (

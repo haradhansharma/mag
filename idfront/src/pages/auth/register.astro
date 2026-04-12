@@ -52,6 +52,7 @@ import Breadcrumbs from '@components/common/Breadcrumbs.astro';
                   id="reg-username"
                   x-model="username"
                   required
+                  autofocus
                   minlength="3"
                   maxlength="30"
                   autocomplete="username"
@@ -107,6 +108,17 @@ import Breadcrumbs from '@components/common/Breadcrumbs.astro';
                     </svg>
                   </button>
                 </div>
+              </div>
+
+              <!-- Password Strength Meter -->
+              <div x-show="password.length > 0" class="mt-2">
+                <div class="flex gap-1 mb-1">
+                  <div class="h-1 flex-1 rounded-full transition-colors duration-200" :class="passwordStrength >= 1 ? (passwordStrength >= 3 ? 'bg-green-500' : passwordStrength >= 2 ? 'bg-amber-500' : 'bg-red-500') : 'bg-gray-200 dark:bg-gray-700'"></div>
+                  <div class="h-1 flex-1 rounded-full transition-colors duration-200" :class="passwordStrength >= 2 ? (passwordStrength >= 3 ? 'bg-green-500' : 'bg-amber-500') : 'bg-gray-200 dark:bg-gray-700'"></div>
+                  <div class="h-1 flex-1 rounded-full transition-colors duration-200" :class="passwordStrength >= 3 ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'"></div>
+                  <div class="h-1 flex-1 rounded-full transition-colors duration-200" :class="passwordStrength >= 4 ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'"></div>
+                </div>
+                <p class="text-xs" :class="passwordStrength >= 3 ? 'text-green-600 dark:text-green-400' : passwordStrength >= 2 ? 'text-amber-600 dark:text-amber-400' : 'text-text-muted dark:text-gray-500'" x-text="passwordStrengthLabel"></p>
               </div>
 
               <!-- Error message -->
@@ -188,6 +200,21 @@ function registerForm() {
     error: '',
     success: false,
 
+    get passwordStrength() {
+      const pw = this.password;
+      if (!pw) return 0;
+      let score = 0;
+      if (pw.length >= 8) score++;
+      if (/[A-Z]/.test(pw)) score++;
+      if (/[0-9]/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      return score;
+    },
+    get passwordStrengthLabel() {
+      const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+      return this.passwordStrength > 0 ? labels[this.passwordStrength - 1] || 'Weak' : '';
+    },
+
     async handleRegister() {
       this.error = '';
       this.success = false;
@@ -201,6 +228,10 @@ function registerForm() {
       }
       if (this.password.length < 8) {
         this.error = 'Password must be at least 8 characters.';
+        return;
+      }
+      if (this.passwordStrength < 2) {
+        this.error = 'Password is too weak. Include uppercase letters, numbers, or symbols.';
         return;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {

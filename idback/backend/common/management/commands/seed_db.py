@@ -23,7 +23,7 @@ from common.models import (
     Category,
     Edition,
     PrintOrder,
-    SiteConfig as SiteConfiguration,
+    SiteSettings,
 )
 from users.models import (
     AuthToken,
@@ -596,17 +596,19 @@ class Command(BaseCommand):
         self.stdout.write(f"  Created {len(objects)} subscription plans")
 
     def _seed_site_config(self):
-        """Populate the SiteConfiguration singleton from site-config.ts dummy data."""
+        """Populate SiteSettings.site_config JSON from site-config.ts dummy data."""
         self.stdout.write("Seeding site configuration...")
         text = _read_file(DUMMY_DIR / "site-config.ts")
-        config = SiteConfiguration.get_instance()
+
+        site = Site.objects.get_current()
+        config, _ = SiteSettings.objects.get_or_create(site=site, defaults={})
 
         # Parse nav_links
         nav_match = re.search(r"navLinks:\s*\[([\s\S]*?)\n  \],", text)
+        nav_links = []
         if nav_match:
             nav_text = nav_match.group(1)
             nav_objects = _split_top_level_objects(nav_text)
-            config.nav_links = []
             for obj in nav_objects:
                 link = {
                     "label": _extract_string(obj, "label"),
@@ -615,29 +617,28 @@ class Command(BaseCommand):
                 access = _extract_string(obj, "access")
                 if access:
                     link["access"] = access
-                config.nav_links.append(link)
+                nav_links.append(link)
 
         # Parse footer_links
         footer_match = re.search(r"footerLinks:\s*\[([\s\S]*?)\n  \],", text)
+        footer_links = []
         if footer_match:
             footer_text = footer_match.group(1)
             footer_objects = _split_top_level_objects(footer_text)
-            config.footer_links = []
             for obj in footer_objects:
-                link = {
+                footer_links.append({
                     "label": _extract_string(obj, "label"),
                     "href": _extract_string(obj, "href"),
-                }
-                config.footer_links.append(link)
+                })
 
         # Parse social_links
         social_match = re.search(r"socialLinks:\s*\[([\s\S]*?)\n  \],", text)
+        social_links = []
         if social_match:
             social_text = social_match.group(1)
             social_objects = _split_top_level_objects(social_text)
-            config.social_links = []
             for obj in social_objects:
-                config.social_links.append({
+                social_links.append({
                     "platform": _extract_string(obj, "platform"),
                     "url": _extract_string(obj, "url"),
                     "label": _extract_string(obj, "label"),
@@ -645,13 +646,13 @@ class Command(BaseCommand):
 
         # Parse payment_gateways
         gw_match = re.search(r"paymentGateways:\s*\[([\s\S]*?)\n  \],", text)
+        payment_gateways = []
         if gw_match:
             gw_text = gw_match.group(1)
             gw_objects = _split_top_level_objects(gw_text)
-            config.payment_gateways = []
             for obj in gw_objects:
                 enabled = _extract_bool(obj, "enabled")
-                config.payment_gateways.append({
+                payment_gateways.append({
                     "id": _extract_string(obj, "id"),
                     "name": _extract_string(obj, "name"),
                     "description": _extract_string(obj, "description"),
@@ -660,15 +661,19 @@ class Command(BaseCommand):
                     "enabled": enabled if enabled != "" else True,
                 })
 
-        config.site_name = _extract_string(text, "name") or "MERIDIAN"
-        config.tagline = _extract_string(text, "tagline") or ""
-        config.description = _extract_string(text, "description") or ""
-        config.url = _extract_string(text, "url") or "https://meridian-mag.com"
-        config.logo = _extract_string(text, "logo") or "/logo.svg"
-        config.og_default_image = _extract_string(text, "ogDefaultImage") or "/og-default.svg"
-        config.favicon = _extract_string(text, "favicon") or "/favicon.svg"
-        config.language = _extract_string(text, "language") or "en"
-        config.terms_of_service_url = _extract_string(text, "termsOfServiceUrl") or "/terms"
+        # Build the site_config JSON dict and save
+        sc = {
+            "name": _extract_string(text, "name") or "MERIDIAN",
+            "tagline": _extract_string(text, "tagline") or "",
+            "description": _extract_string(text, "description") or "",
+            "url": _extract_string(text, "url") or "https://meridian-mag.com",
+            "terms_of_service_url": _extract_string(text, "termsOfServiceUrl") or "/terms",
+            "nav_links": nav_links,
+            "footer_links": footer_links,
+            "social_links": social_links,
+            "payment_gateways": payment_gateways,
+        }
+        config.site_config = sc
         config.save()
 
         self.stdout.write("  Site configuration seeded")

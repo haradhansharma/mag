@@ -1,11 +1,12 @@
 ---
 // Editorial Queue — Pre-publish review queue
-// Interactive filtering, status updates, read-before-approve popup, and reject modal via Alpine.js.
+// API-first with dummy data fallback.
+// Wire up submit, approve, reject, publish actions to real backend endpoints.
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Breadcrumbs from '@components/common/Breadcrumbs.astro';
 import { getEditorialQueue } from '@data/dummy/editorial';
 
-const queue = getEditorialQueue();
+const dummyQueue = getEditorialQueue();
 ---
 
 <BaseLayout
@@ -30,7 +31,7 @@ const queue = getEditorialQueue();
               Editorial Queue
             </h1>
             <p class="mt-2 text-text-secondary dark:text-gray-400">
-              <span x-text="filteredQueue.length"></span> articles in queue
+              <span x-show="!loading" x-text="filteredQueue.length"></span><span x-show="loading">...</span> articles in queue
             </p>
           </div>
           <!-- Search -->
@@ -42,6 +43,7 @@ const queue = getEditorialQueue();
               type="text"
               placeholder="Search by title or author..."
               x-model="search"
+              aria-label="Search queue"
               class="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
             />
           </div>
@@ -60,14 +62,23 @@ const queue = getEditorialQueue();
         </div>
       </div>
 
+      <!-- Loading State -->
+      <div x-show="loading" class="flex items-center justify-center py-20">
+        <svg class="animate-spin w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="ml-3 text-text-secondary dark:text-gray-400">Loading editorial queue...</span>
+      </div>
+
       <!-- Queue Items -->
-      <div class="space-y-4">
+      <div x-show="!loading" class="space-y-4">
         <template x-for="item in filteredQueue" :key="item.id">
           <div class="bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-5 hover:shadow-md transition-shadow">
             <div class="flex flex-col sm:flex-row gap-4">
               <!-- Cover Thumbnail -->
               <div class="flex-shrink-0">
-                <img :src="item.coverImage" :alt="item.title" class="w-full sm:w-24 h-32 sm:h-24 object-cover rounded-xl" loading="lazy" />
+                <img :src="item.coverImage || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2796%27 height=%2796%27 fill=%27none%27%3E%3Crect width=%2796%27 height=%2796%27 fill=%27%231e293b%27/%3E%3C/svg%3E'" :alt="item.title" class="w-full sm:w-24 h-32 sm:h-24 object-cover rounded-xl" loading="lazy" />
               </div>
 
               <!-- Content -->
@@ -89,33 +100,30 @@ const queue = getEditorialQueue();
 
                   <!-- Status + Actions -->
                   <div class="flex flex-col items-end gap-2 flex-shrink-0">
-                    <!-- Status Badge -->
                     <span :class="statusClasses(item.status)" class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold" x-text="statusLabel(item.status)"></span>
-
-                    <!-- Submitted date -->
                     <span class="text-xs text-text-muted dark:text-gray-500" x-text="timeAgo(item.submittedAt)"></span>
 
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-2 mt-1 flex-wrap justify-end">
-                      <!-- Read Article button (visible for all statuses except published which has its own link) -->
+                      <!-- Read Article button -->
                       <template x-if="item.status !== 'published'">
-                        <button @click="openReadModal(item.id)" class="px-3 py-1.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1">
+                        <button @click="openReadModal(item.id)" class="px-3 py-1.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1" aria-label="Read article">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                           Read
                         </button>
                       </template>
 
-                      <!-- Draft -->
+                      <!-- Draft actions -->
                       <template x-if="item.status === 'draft'">
-                        <button @click="submitForReview(item.id)" class="px-3 py-1.5 bg-accent hover:bg-sky-600 text-white text-xs font-semibold rounded-lg transition-colors">
+                        <button @click="submitForReview(item.id)" :disabled="actionLoading" class="px-3 py-1.5 bg-accent hover:bg-sky-600 disabled:bg-accent/50 text-white text-xs font-semibold rounded-lg transition-colors">
                           Submit for Review
                         </button>
                       </template>
 
-                      <!-- In Review -->
+                      <!-- In Review actions -->
                       <template x-if="item.status === 'in_review'">
                         <div class="flex items-center gap-2">
-                          <button @click="approve(item.id)" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                          <button @click="approve(item.id)" :disabled="actionLoading" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white text-xs font-semibold rounded-lg transition-colors">
                             Approve
                           </button>
                           <button @click="openRejectModal(item.id)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors">
@@ -127,22 +135,22 @@ const queue = getEditorialQueue();
                         </div>
                       </template>
 
-                      <!-- Approved -->
+                      <!-- Approved actions -->
                       <template x-if="item.status === 'approved'">
                         <div class="flex items-center gap-2">
                           <button class="px-3 py-1.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-xs font-semibold rounded-lg transition-colors">
                             Schedule
                           </button>
-                          <button @click="publish(item.id)" class="px-3 py-1.5 bg-accent hover:bg-sky-600 text-white text-xs font-semibold rounded-lg transition-colors">
+                          <button @click="publish(item.id)" :disabled="actionLoading" class="px-3 py-1.5 bg-accent hover:bg-sky-600 disabled:bg-accent/50 text-white text-xs font-semibold rounded-lg transition-colors">
                             Publish Now
                           </button>
                         </div>
                       </template>
 
-                      <!-- Rejected -->
+                      <!-- Rejected actions -->
                       <template x-if="item.status === 'rejected'">
                         <div class="text-right">
-                          <button @click="reopen(item.id)" class="px-3 py-1.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-xs font-semibold rounded-lg transition-colors">
+                          <button @click="reopen(item.id)" :disabled="actionLoading" class="px-3 py-1.5 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-xs font-semibold rounded-lg transition-colors">
                             Reopen
                           </button>
                           <p class="text-xs text-red-600 dark:text-red-400 mt-1 max-w-[200px] line-clamp-2" x-text="item.rejectionReason"></p>
@@ -151,9 +159,9 @@ const queue = getEditorialQueue();
 
                       <!-- Published -->
                       <template x-if="item.status === 'published'">
-                        <a :href="'/articles/' + item.articleId" target="_blank" class="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors">
-                          View Published →
-                        </a>
+                        <span class="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-lg">
+                          Published
+                        </span>
                       </template>
                     </div>
                   </div>
@@ -173,62 +181,36 @@ const queue = getEditorialQueue();
         </div>
       </div>
 
-      <!-- ==================== Read Article Modal ==================== -->
-      <div
-        x-show="showReadModal"
-        x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        @keydown.escape.window="showReadModal = false"
-      >
+      <!-- Read Article Modal -->
+      <div x-show="showReadModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="showReadModal = false">
         <div class="fixed inset-0 bg-black/50" @click="showReadModal = false"></div>
         <div class="relative bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 w-full max-w-3xl shadow-xl z-10 max-h-[85vh] flex flex-col"
-          x-transition:enter="transition ease-out duration-200"
-          x-transition:enter-start="opacity-0 scale-95"
-          x-transition:enter-end="opacity-100 scale-100"
-          x-transition:leave="transition ease-in duration-150"
-          x-transition:leave-start="opacity-100 scale-100"
-          x-transition:leave-end="opacity-0 scale-95"
-        >
-          <!-- Modal Header -->
+          x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
           <div class="flex items-center justify-between p-5 border-b border-border dark:border-gray-800 shrink-0">
             <div class="min-w-0 flex-1 pr-4">
               <h3 class="font-editorial text-lg font-bold text-text-primary dark:text-gray-100 line-clamp-1" x-text="readItem ? readItem.title : ''"></h3>
               <div class="flex items-center gap-2 mt-1 text-xs text-text-muted dark:text-gray-500">
-                <span x-text="readItem ? readItem.authorName : ''"></span>
-                <span>·</span>
-                <span x-text="readItem ? readItem.category : ''"></span>
-                <span>·</span>
+                <span x-text="readItem ? readItem.authorName : ''"></span><span>·</span>
+                <span x-text="readItem ? readItem.category : ''"></span><span>·</span>
                 <span x-text="readItem ? readItem.readingTime + ' min read' : ''"></span>
               </div>
             </div>
-            <button @click="showReadModal = false" class="shrink-0 text-text-muted dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors p-1">
+            <button @click="showReadModal = false" class="shrink-0 text-text-muted dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors p-1" aria-label="Close modal">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <!-- Modal Body -->
           <div class="flex-1 overflow-y-auto p-6">
             <template x-if="readItem">
               <div>
-                <!-- Cover Image -->
-                <img :src="readItem.coverImage" :alt="readItem.title" class="w-full h-48 sm:h-64 object-cover rounded-xl mb-6" />
-                <!-- Excerpt -->
+                <img :src="readItem.coverImage || ''" :alt="readItem.title" class="w-full h-48 sm:h-64 object-cover rounded-xl mb-6" />
                 <div class="prose dark:prose-invert max-w-none">
                   <p class="text-text-secondary dark:text-gray-300 text-base leading-relaxed" x-text="readItem.excerpt"></p>
                 </div>
-                <!-- Article Meta -->
                 <div class="mt-6 bg-surface-alt dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-text-muted dark:text-gray-500">Word Count</span>
-                    <span class="text-text-primary dark:text-gray-200 font-medium" x-text="readItem.wordCount + ' words'"></span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-text-muted dark:text-gray-500">Reading Time</span>
-                    <span class="text-text-primary dark:text-gray-200 font-medium" x-text="readItem.readingTime + ' minutes'"></span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-text-muted dark:text-gray-500">Status</span>
-                    <span :class="statusClasses(readItem.status)" class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold" x-text="statusLabel(readItem.status)"></span>
-                  </div>
+                  <div class="flex justify-between"><span class="text-text-muted dark:text-gray-500">Word Count</span><span class="text-text-primary dark:text-gray-200 font-medium" x-text="readItem.wordCount + ' words'"></span></div>
+                  <div class="flex justify-between"><span class="text-text-muted dark:text-gray-500">Reading Time</span><span class="text-text-primary dark:text-gray-200 font-medium" x-text="readItem.readingTime + ' minutes'"></span></div>
+                  <div class="flex justify-between"><span class="text-text-muted dark:text-gray-500">Status</span><span :class="statusClasses(readItem.status)" class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold" x-text="statusLabel(readItem.status)"></span></div>
                   <template x-if="readItem.rejectionReason">
                     <div class="pt-2 border-t border-border dark:border-gray-700">
                       <span class="text-text-muted dark:text-gray-500 text-xs block mb-1">Rejection Reason</span>
@@ -236,84 +218,36 @@ const queue = getEditorialQueue();
                     </div>
                   </template>
                 </div>
-                <!-- Note about full content -->
-                <div class="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-400">
-                  <div class="flex items-start gap-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                    <span>Full article content is available on the article detail page. This preview shows the article excerpt and metadata for editorial review purposes.</span>
-                  </div>
-                </div>
               </div>
             </template>
           </div>
-          <!-- Modal Footer -->
           <div class="flex items-center justify-between p-5 border-t border-border dark:border-gray-800 shrink-0">
-            <button @click="showReadModal = false" class="px-4 py-2 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-sm font-semibold rounded-xl transition-colors">
-              Close
-            </button>
-            <template x-if="readItem && readItem.status === 'in_review'">
-              <div class="flex gap-2">
-                <button @click="approve(readItem.id); showReadModal = false;" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                  Approve
-                </button>
-                <button @click="openRejectModal(readItem.id); showReadModal = false;" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors">
-                  Reject
-                </button>
-              </div>
-            </template>
+            <button @click="showReadModal = false" class="px-4 py-2 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-sm font-semibold rounded-xl transition-colors">Close</button>
           </div>
         </div>
       </div>
 
       <!-- Reject Modal -->
-      <div
-        x-show="showRejectModal"
-        x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        @keydown.escape.window="showRejectModal = false"
-      >
-        <!-- Backdrop -->
+      <div x-show="showRejectModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="showRejectModal = false">
         <div class="fixed inset-0 bg-black/50" @click="showRejectModal = false"></div>
-        <!-- Modal -->
         <div class="relative bg-white dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-800 p-6 w-full max-w-md shadow-xl z-10"
-          x-transition:enter="transition ease-out duration-200"
-          x-transition:enter-start="opacity-0 scale-95"
-          x-transition:enter-end="opacity-100 scale-100"
-          x-transition:leave="transition ease-in duration-150"
-          x-transition:leave-start="opacity-100 scale-100"
-          x-transition:leave-end="opacity-0 scale-95"
-        >
+          x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
           <h3 class="font-editorial text-lg font-bold text-text-primary dark:text-gray-100">Reject Article</h3>
           <p class="text-sm text-text-secondary dark:text-gray-400 mt-1">Please provide a reason for rejection. This will be shared with the author.</p>
-          <textarea
-            x-model="rejectReason"
-            rows="4"
-            placeholder="Enter rejection reason..."
-            class="mt-4 w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent resize-none transition-colors"
-          ></textarea>
+          <textarea x-model="rejectReason" rows="4" placeholder="Enter rejection reason..." autofocus class="mt-4 w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-border dark:border-gray-700 rounded-xl text-sm text-text-primary dark:text-gray-200 placeholder-text-muted dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent resize-none transition-colors"></textarea>
           <div class="flex justify-end gap-3 mt-4">
-            <button @click="showRejectModal = false; rejectReason = ''" class="px-4 py-2 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-sm font-semibold rounded-xl transition-colors">
-              Cancel
-            </button>
-            <button @click="confirmReject()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors">
-              Reject Article
-            </button>
+            <button @click="showRejectModal = false; rejectReason = ''" class="px-4 py-2 border border-border dark:border-gray-700 hover:bg-surface dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300 text-sm font-semibold rounded-xl transition-colors">Cancel</button>
+            <button @click="confirmReject()" :disabled="actionLoading" class="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-500/50 text-white text-sm font-semibold rounded-xl transition-colors">Reject Article</button>
           </div>
         </div>
       </div>
 
       <!-- Toast Notification -->
-      <div
-        x-show="toast.show"
-        x-cloak
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-y-4"
-        x-transition:enter-end="opacity-100 translate-y-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 translate-y-0"
-        x-transition:leave-end="opacity-0 translate-y-4"
-        class="fixed bottom-6 right-6 z-50"
-      >
+      <div x-show="toast.show" x-cloak
+        x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-4"
+        class="fixed bottom-6 right-6 z-50" role="status" aria-live="polite">
         <div :class="toast.type === 'success' ? 'bg-green-600' : toast.type === 'error' ? 'bg-red-600' : 'bg-blue-600'" class="px-5 py-3 rounded-xl shadow-lg text-white text-sm font-medium flex items-center gap-2">
           <svg x-show="toast.type === 'success'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
           <svg x-show="toast.type === 'error'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -323,19 +257,24 @@ const queue = getEditorialQueue();
     </div>
   </div>
 
-  <!-- Seed data via inline script -->
+  <!-- Seed data via inline script (dummy fallback) -->
   <Fragment set:html={`
     <script is:inline>
-      window.__meridian_queue = ${JSON.stringify(queue)};
+      window.__meridian_queue = ${JSON.stringify(dummyQueue)};
     </script>
   `} />
 
   <script is:inline>
     function editorialQueue() {
+      const API_BASE = 'http://localhost:8085/api/v1';
+      const MEDIA_BASE = 'http://localhost:8085';
+
       return {
         queue: [],
         search: '',
         activeFilter: 'all',
+        loading: true,
+        actionLoading: false,
         showRejectModal: false,
         showReadModal: false,
         rejectReason: '',
@@ -343,9 +282,43 @@ const queue = getEditorialQueue();
         readItem: null,
         toast: { show: false, message: '', type: 'success' },
         toastTimer: null,
+        usingApi: false,
 
-        init() {
+        async init() {
+          const token = localStorage.getItem('meridian_token');
+          if (token) {
+            try {
+              const res = await fetch(API_BASE + '/editorial/queue/?page_size=100', {
+                headers: { 'Authorization': 'Bearer ' + token },
+              });
+              if (res.ok) {
+                const data = await res.json();
+                this.queue = (data.results || []).map(q => ({
+                  id: q.id,
+                  title: q.title,
+                  excerpt: q.excerpt,
+                  authorName: q.author_name,
+                  authorSlug: q.author_slug,
+                  category: q.category_name,
+                  categorySlug: q.category_slug,
+                  coverImage: q.cover_image ? (q.cover_image.startsWith('http') ? q.cover_image : MEDIA_BASE + q.cover_image) : '',
+                  status: q.status,
+                  submittedAt: q.submitted_at,
+                  updatedAt: q.updated_at,
+                  reviewedBy: q.reviewed_by_name,
+                  rejectionReason: q.rejection_reason,
+                  wordCount: q.word_count,
+                  readingTime: q.reading_time,
+                }));
+                this.usingApi = true;
+                this.loading = false;
+                return;
+              }
+            } catch (e) { /* fall through to dummy */ }
+          }
+          // Fallback to dummy data
           this.queue = JSON.parse(JSON.stringify(window.__meridian_queue));
+          this.loading = false;
         },
 
         get filteredQueue() {
@@ -355,86 +328,131 @@ const queue = getEditorialQueue();
           }
           if (this.search.trim()) {
             const q = this.search.toLowerCase();
-            items = items.filter(i =>
-              i.title.toLowerCase().includes(q) ||
-              i.authorName.toLowerCase().includes(q)
-            );
+            items = items.filter(i => i.title.toLowerCase().includes(q) || i.authorName.toLowerCase().includes(q));
           }
           return items;
         },
 
-        openReadModal(id) {
-          this.readItem = this.queue.find(i => i.id === id) || null;
-          this.showReadModal = true;
+        getToken() { return localStorage.getItem('meridian_token') || ''; },
+
+        openReadModal(id) { this.readItem = this.queue.find(i => i.id === id) || null; this.showReadModal = true; },
+
+        async submitForReview(id) {
+          if (this.usingApi && this.getToken()) {
+            this.actionLoading = true;
+            try {
+              const res = await fetch(API_BASE + '/articles/' + id + '/submit/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.getToken() },
+              });
+              if (res.ok) { const data = await res.json(); this.updateItem(id, data); this.showToast('Article submitted for review', 'success'); }
+              else { const err = await res.json().catch(() => ({})); this.showToast(err.detail || 'Failed to submit', 'error'); }
+            } catch (e) { this.showToast('Network error', 'error'); }
+            this.actionLoading = false;
+          } else {
+            const item = this.queue.find(i => i.id === id);
+            if (item) { item.status = 'in_review'; item.updatedAt = new Date().toISOString(); this.showToast('Article submitted for review (demo)', 'success'); }
+          }
         },
 
-        submitForReview(id) {
+        async approve(id) {
+          if (this.usingApi && this.getToken()) {
+            this.actionLoading = true;
+            try {
+              const res = await fetch(API_BASE + '/articles/' + id + '/status/', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.getToken() },
+                body: JSON.stringify({ status: 'approved' }),
+              });
+              if (res.ok) { const data = await res.json(); this.updateItem(id, data); this.showToast('Article approved', 'success'); }
+              else { const err = await res.json().catch(() => ({})); this.showToast(err.detail || 'Failed to approve', 'error'); }
+            } catch (e) { this.showToast('Network error', 'error'); }
+            this.actionLoading = false;
+          } else {
+            const item = this.queue.find(i => i.id === id);
+            if (item) { item.status = 'approved'; item.updatedAt = new Date().toISOString(); this.showToast('Article approved (demo)', 'success'); }
+          }
+        },
+
+        async publish(id) {
+          if (this.usingApi && this.getToken()) {
+            this.actionLoading = true;
+            try {
+              const res = await fetch(API_BASE + '/articles/' + id + '/status/', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.getToken() },
+                body: JSON.stringify({ status: 'published' }),
+              });
+              if (res.ok) { const data = await res.json(); this.updateItem(id, data); this.showToast('Article published!', 'success'); }
+              else { const err = await res.json().catch(() => ({})); this.showToast(err.detail || 'Failed to publish', 'error'); }
+            } catch (e) { this.showToast('Network error', 'error'); }
+            this.actionLoading = false;
+          } else {
+            const item = this.queue.find(i => i.id === id);
+            if (item) { item.status = 'published'; item.updatedAt = new Date().toISOString(); this.showToast('Article published! (demo)', 'success'); }
+          }
+        },
+
+        async reopen(id) {
+          if (this.usingApi && this.getToken()) {
+            this.actionLoading = true;
+            try {
+              const res = await fetch(API_BASE + '/articles/' + id + '/status/', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.getToken() },
+                body: JSON.stringify({ status: 'draft' }),
+              });
+              if (res.ok) { const data = await res.json(); this.updateItem(id, data); this.showToast('Article reopened as draft', 'success'); }
+              else { const err = await res.json().catch(() => ({})); this.showToast(err.detail || 'Failed to reopen', 'error'); }
+            } catch (e) { this.showToast('Network error', 'error'); }
+            this.actionLoading = false;
+          } else {
+            const item = this.queue.find(i => i.id === id);
+            if (item) { item.status = 'draft'; item.rejectionReason = ''; item.updatedAt = new Date().toISOString(); this.showToast('Article reopened (demo)', 'success'); }
+          }
+        },
+
+        openRejectModal(id) { this.rejectTargetId = id; this.rejectReason = ''; this.showRejectModal = true; },
+
+        async confirmReject() {
+          if (!this.rejectReason.trim()) { this.showToast('Please provide a rejection reason', 'error'); return; }
+          if (this.usingApi && this.getToken()) {
+            this.actionLoading = true;
+            try {
+              const res = await fetch(API_BASE + '/articles/' + this.rejectTargetId + '/status/', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.getToken() },
+                body: JSON.stringify({ status: 'rejected', rejection_reason: this.rejectReason }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                this.updateItem(this.rejectTargetId, data);
+                this.showRejectModal = false; this.rejectReason = '';
+                this.showToast('Article rejected', 'success');
+              } else { const err = await res.json().catch(() => ({})); this.showToast(err.detail || 'Failed to reject', 'error'); }
+            } catch (e) { this.showToast('Network error', 'error'); }
+            this.actionLoading = false;
+          } else {
+            const item = this.queue.find(i => i.id === this.rejectTargetId);
+            if (item) { item.status = 'rejected'; item.rejectionReason = this.rejectReason; item.updatedAt = new Date().toISOString(); }
+            this.showRejectModal = false; this.rejectReason = '';
+            this.showToast('Article rejected (demo)', 'success');
+          }
+        },
+
+        updateItem(id, apiData) {
           const item = this.queue.find(i => i.id === id);
-          if (item) {
-            item.status = 'in_review';
-            item.updatedAt = new Date().toISOString();
-            this.showToast('Article submitted for review', 'success');
+          if (item && apiData) {
+            item.status = apiData.status || item.status;
+            item.rejectionReason = apiData.rejection_reason || item.rejectionReason;
+            item.updatedAt = apiData.updated_at || new Date().toISOString();
           }
-        },
-
-        approve(id) {
-          const item = this.queue.find(i => i.id === id);
-          if (item) {
-            item.status = 'approved';
-            item.updatedAt = new Date().toISOString();
-            item.reviewedBy = 'Current Editor';
-            this.showToast('Article approved', 'success');
-          }
-        },
-
-        publish(id) {
-          const item = this.queue.find(i => i.id === id);
-          if (item) {
-            item.status = 'published';
-            item.updatedAt = new Date().toISOString();
-            this.showToast('Article published!', 'success');
-          }
-        },
-
-        reopen(id) {
-          const item = this.queue.find(i => i.id === id);
-          if (item) {
-            item.status = 'draft';
-            item.rejectionReason = undefined;
-            item.updatedAt = new Date().toISOString();
-            this.showToast('Article reopened as draft', 'success');
-          }
-        },
-
-        openRejectModal(id) {
-          this.rejectTargetId = id;
-          this.rejectReason = '';
-          this.showRejectModal = true;
-        },
-
-        confirmReject() {
-          if (!this.rejectReason.trim()) {
-            this.showToast('Please provide a rejection reason', 'error');
-            return;
-          }
-          const item = this.queue.find(i => i.id === this.rejectTargetId);
-          if (item) {
-            item.status = 'rejected';
-            item.rejectionReason = this.rejectReason;
-            item.updatedAt = new Date().toISOString();
-            item.reviewedBy = 'Current Editor';
-          }
-          this.showRejectModal = false;
-          this.rejectReason = '';
-          this.showToast('Article rejected', 'success');
         },
 
         showToast(message, type = 'success') {
           if (this.toastTimer) clearTimeout(this.toastTimer);
           this.toast = { show: true, message, type };
-          this.toastTimer = setTimeout(() => {
-            this.toast.show = false;
-          }, 3000);
+          this.toastTimer = setTimeout(() => { this.toast.show = false; }, 3000);
         },
 
         statusClasses(status) {
@@ -449,26 +467,19 @@ const queue = getEditorialQueue();
         },
 
         statusLabel(status) {
-          const map = {
-            draft: 'Draft',
-            in_review: 'In Review',
-            approved: 'Approved',
-            rejected: 'Rejected',
-            published: 'Published',
-          };
+          const map = { draft: 'Draft', in_review: 'In Review', approved: 'Approved', rejected: 'Rejected', published: 'Published' };
           return map[status] || status;
         },
 
         timeAgo(dateStr) {
+          if (!dateStr) return '';
           const date = new Date(dateStr);
           const now = new Date();
           const diffMs = now.getTime() - date.getTime();
-          const diffSec = Math.floor(diffMs / 1000);
-          const diffMin = Math.floor(diffSec / 60);
+          const diffMin = Math.floor(diffMs / 60000);
           const diffHr = Math.floor(diffMin / 60);
           const diffDay = Math.floor(diffHr / 24);
-          if (diffSec < 60) return 'just now';
-          if (diffMin < 60) return diffMin + 'm ago';
+          if (diffMin < 60) return 'just now';
           if (diffHr < 24) return diffHr + 'h ago';
           if (diffDay < 7) return diffDay + 'd ago';
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

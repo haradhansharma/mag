@@ -698,6 +698,15 @@ export async function getHomepageData() {
       const trending = homepage.trending_articles.map(transformArticleBrief);
       const latestEdition = homepage.latest_edition ? transformEditionBrief(homepage.latest_edition) : undefined;
 
+      // Dynamically fetch articles for the first 3 featured categories
+      const categorySlugs = homepage.categories.slice(0, 3).map(c => c.slug);
+      const [catRes1, catRes2, catRes3] = await Promise.allSettled(
+        categorySlugs.map(slug => fetchArticles({ category: slug, page_size: 3 }))
+      );
+      const categoryResults = [catRes1, catRes2, catRes3].map(
+        r => r.status === 'fulfilled' ? r.value.results.map(transformArticleBrief) : []
+      );
+
       // Hero = first featured article (or first trending as fallback)
       const heroArticle = featured[0] || trending[0];
 
@@ -706,9 +715,9 @@ export async function getHomepageData() {
         heroArticle,
         trending,
         featured,
-        latestScience,
-        latestWorld,
-        latestEnvironment,
+        latestScience: categoryResults[0] || [],
+        latestWorld: categoryResults[1] || [],
+        latestEnvironment: categoryResults[2] || [],
         editionCount: latestEdition?.number || 0,
       };
     } catch { /* fall through */ }

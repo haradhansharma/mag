@@ -366,7 +366,6 @@ class Article(models.Model):
 
 
 class PrintOrder(models.Model):
-
     class ShippingRegion(models.TextChoices):
         US = "us", "US"
         INTERNATIONAL = "international", "International"
@@ -422,3 +421,18 @@ class PrintOrder(models.Model):
 
     def __str__(self):
         return f"Order {self.order_id}"
+
+
+class Newsletter(models.Model):
+    """Stores newsletter subscriber emails."""
+
+    email = models.EmailField(unique=True)
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "newsletters"
+        ordering = ["-subscribed_at"]
+
+    def __str__(self):
+        return self.email

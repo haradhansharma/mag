@@ -31,6 +31,7 @@ from common.models import (
     Author,
     Category,
     Edition,
+    Newsletter,
     PrintOrder,
     SiteSettings,
 )
@@ -431,7 +432,7 @@ def list_editions(
 @api.get("/editions/{slug}", response=EditionOut)
 def get_edition(request: HttpRequest, slug: str):
     edition = (
-        Edition.objects.filter(slug=slug)
+        Edition.objects.filter(slug=slug, status=Edition.Status.PUBLISHED)
         .prefetch_related("articles__author", "articles__category")
         .first()
     )
@@ -637,8 +638,13 @@ class NewsletterSubscribeIn(BaseModel):
 def newsletter_subscribe(request: HttpRequest, data: NewsletterSubscribeIn):
     if not data.email or "@" not in data.email:
         raise HttpError(400, "A valid email address is required")
-    # In production, save to a Newsletter model and send confirmation email.
-    # For now, accept and return success (the frontend handles the UX).
+    obj, created = Newsletter.objects.get_or_create(
+        email=data.email.lower().strip(),
+        defaults={"is_active": True},
+    )
+    if not created and not obj.is_active:
+        obj.is_active = True
+        obj.save(update_fields=["is_active"])
     return MessageOut(message="Successfully subscribed to the newsletter")
 
 
@@ -730,10 +736,11 @@ def register(request: HttpRequest, data: UserRegister):
     token_str = create_verification_token(user)
     send_verification_email(user, token_str)
 
-    # Still return auth token for the session
-    token = create_token_for_user(user)
+    # Do NOT return auth token for inactive user — it would be immediately
+    # rejected by GlobalAuth on any authenticated endpoint.  Instead, the
+    # client should re-login after verifying their email.
     return TokenOut(
-        token=token.key,
+        token="",
         user_id=str(user.id),
         username=user.username,
         role=user.role,
@@ -1186,7 +1193,7 @@ def editorial_activity_log(
             id=str(a.id),
             action=a.action,
             article_title=a.article.title,
-            performed_by_name=a.performed_by.username,
+            performed_by_name=a.performed_by.first_name or a.performed_by.username,
             timestamp=a.created_at,
             details=a.details,
         )

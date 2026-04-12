@@ -139,7 +139,7 @@ const canonicalUrl = `https://meridian-mag.com/articles/${article.slug}`;
     <!-- Article Content -->
     <div class="article-content">
       {article.access === 'premium' ? (
-        <PremiumGate previewContent={preview} fullContent={full} />
+        <PremiumGate previewContent={preview} articleSlug={article.slug} />
       ) : (
         <Fragment set:html={article.content} />
       )}

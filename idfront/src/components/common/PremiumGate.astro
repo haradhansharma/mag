@@ -1,26 +1,28 @@
 ---
 // PremiumGate.astro
 // Alpine.js-powered premium content gate/paywall.
-// Wraps premium article content with a fade-bottom mask and a CTA card.
+// Full content is NOT embedded in static HTML — it is fetched via API
+// only after the user authenticates and has a premium role.
+// This prevents premium content from leaking in page source.
 
 interface Props {
   previewContent: string;  // HTML excerpt shown before paywall
-  fullContent: string;     // Full HTML behind paywall
+  articleSlug: string;     // Article slug to fetch full content from API
 }
 
-const { previewContent, fullContent } = Astro.props;
+const { previewContent, articleSlug } = Astro.props;
 ---
 
-<div x-data="{ showPremium: false }">
+<div x-data="{ showPremium: false, checking: false, fullContent: '' }">
   <!-- Preview with fade mask -->
   <div x-show="!showPremium" class="relative">
     <div class="fade-bottom" set:html={previewContent}></div>
     <div class="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-surface dark:from-gray-950 to-transparent"></div>
   </div>
 
-  <!-- Full content (hidden by default) -->
+  <!-- Full content (fetched dynamically, hidden until auth verified) -->
   <div x-show="showPremium" x-cloak x-transition.opacity>
-    <Fragment set:html={fullContent}></Fragment>
+    <div id="premium-content-slot" set:html={previewContent}></div>
   </div>
 
   <!-- Paywall CTA card -->
@@ -33,7 +35,50 @@ const { previewContent, fullContent } = Astro.props;
       <p class="text-text-secondary dark:text-gray-400 mb-6">This article is for premium subscribers. Unlock full access to all stories, editions, and exclusive content.</p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
         <a href="/subscribe" class="px-6 py-3 bg-accent hover:bg-sky-600 text-white font-semibold rounded-lg transition-colors shadow-md">Subscribe — $4.99/month</a>
-        <button @click="showPremium = true" class="px-6 py-3 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 font-semibold rounded-lg transition-colors">Preview Full Article</button>
+        <button
+          @click="
+            checking = true;
+            const token = localStorage.getItem('meridian_token');
+            const userData = localStorage.getItem('meridian_user');
+            if (!token || !userData) {
+              window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
+              return;
+            }
+            try {
+              const user = JSON.parse(userData);
+              const premiumRoles = ['subscriber', 'admin', 'editor', 'writer'];
+              if (premiumRoles.includes(user.role)) {
+                // Fetch full article content from API
+                const API_BASE = 'http://localhost:8085/api/v1';
+                fetch(API_BASE + '/articles/{articleSlug}', {
+                  headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(res => {
+                  if (!res.ok) throw new Error('Failed to fetch');
+                  return res.json();
+                })
+                .then(data => {
+                  fullContent = data.content || '';
+                  document.getElementById('premium-content-slot').innerHTML = fullContent;
+                  showPremium = true;
+                })
+                .catch(() => {
+                  window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
+                });
+              } else {
+                window.location.href = '/subscribe';
+              }
+            } catch(e) {
+              window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
+            }
+            checking = false;
+          "
+          :disabled="checking"
+          class="px-6 py-3 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-400 hover:bg-surface dark:hover:bg-gray-800 font-semibold rounded-lg transition-colors"
+        >
+          <span x-show="!checking">Preview Full Article</span>
+          <span x-show="checking" x-cloak>Verifying...</span>
+        </button>
       </div>
     </div>
   </div>
